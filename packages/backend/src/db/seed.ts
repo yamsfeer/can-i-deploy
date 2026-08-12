@@ -170,10 +170,13 @@ const getModelId = db.prepare('SELECT id FROM models WHERE source = ? AND source
 const insertQuant = db.prepare(
   `INSERT INTO quantizations (model_id, format, quant_name, bits_per_param, weight_bytes, official, url, downloads)
    VALUES (?, ?, ?, ?, ?, 1, ?, ?)
-   ON CONFLICT(model_id, quant_name) DO NOTHING`,
+   ON CONFLICT(model_id, quant_name) DO UPDATE SET
+     format=excluded.format, bits_per_param=excluded.bits_per_param,
+     weight_bytes=excluded.weight_bytes, url=excluded.url, downloads=excluded.downloads`,
 )
 
-const BITS: Record<QuantName, number> = {
+/** 每参数字节数（PRD §7.1 命名 bits_per_param，实为字节）：fp16=2B、fp8=1B、Q4=0.5B */
+const BYTES_PER_PARAM: Record<QuantName, number> = {
   fp16: 2.0, fp8: 1.0, Q8_0: 1.0, Q6_K: 0.75, Q5_K_M: 0.625, Q4_K_M: 0.5,
 }
 
@@ -190,10 +193,10 @@ for (const m of MODELS) {
   )
   const row = getModelId.get(m.source, m.source_id) as { id: number }
   for (const q of m.quants) {
-    const bits = BITS[q]
-    const weightBytes = Math.round((m.params * 1e9 * bits) / 8)
+    const bytesPerParam = BYTES_PER_PARAM[q]
+    const weightBytes = Math.round(m.params * 1e9 * bytesPerParam)
     const fmt = q === 'fp16' || q === 'fp8' ? 'safetensors' : 'gguf'
-    insertQuant.run(row.id, fmt, q, bits, weightBytes, baseUrl, Math.round(m.downloads * 0.1))
+    insertQuant.run(row.id, fmt, q, bytesPerParam, weightBytes, baseUrl, Math.round(m.downloads * 0.1))
   }
 }
 console.log(`[seed] 插入 ${MODELS.length} 个 demo 模型及官方量化`)

@@ -100,7 +100,7 @@ pnpm --filter @can-i-deploy/frontend dev
 | GET | `/api/models/:id` | 模型详情：量化表 + 换卡建议 | 详情页 |
 | GET | `/api/tiers` | 4 档定义 + 公式常量 | 分档说明页 |
 | GET | `/api/organizations` | 白名单组织列表 | （可选）关于/说明 |
-| POST | `/api/sync` | 手动触发数据拉取（占位） | 管理 |
+| POST | `/api/sync` | 手动触发数据拉取（遍历白名单组织） | 管理 |
 | GET | `/api/sync/logs` | 同步日志 | 管理 |
 
 ---
@@ -261,12 +261,24 @@ pnpm --filter @can-i-deploy/frontend dev
 { "data": [ { "id": 1, "name": "Qwen", "hf_author": "Qwen", "modelscope_org": "Qwen", "note": null } ] }
 ```
 
-### 4.7 `POST /api/sync` / `GET /api/sync/logs`（管理，占位）
+### 4.7 `POST /api/sync` / `GET /api/sync/logs`（管理）
+
+手动触发全量数据同步（遍历白名单组织 → HF + ModelScope 双源抓取 → upsert 入库）。
+返回 `SyncSummary`；并发触发时返回 `409`。
 
 ```jsonc
-POST → { "ok": true, "message": "M2 数据管道未实现（占位响应），同步日志已记录" }
-GET /api/sync/logs → { "data": [ { "id": 1, "started_at": "...", "finished_at": "...", "status": "skipped", "message": "..." } ] }
+POST → {
+  "ok": true,
+  "startedAt": "2026-08-12T...Z", "finishedAt": "2026-08-12T...Z",
+  "status": "success",          // success | partial | failed
+  "orgs": 18, "candidates": 92, "inserted": 88, "quantRows": 92,
+  "skipped": [ { "reason": "params 缺失/为 0", "count": 12 } ],
+  "errors": []
+}
+GET /api/sync/logs → { "data": [ { "id": 1, "started_at": "...", "finished_at": "...", "status": "success", "message": "{...}" } ] }
 ```
+
+> 同步请求量通过环境变量收敛（`SYNC_ORG_LIMIT` / `SYNC_MAX_MODELS_PER_ORG` / `SYNC_SOURCE`），见 backend `src/sync/index.ts`。
 
 ---
 

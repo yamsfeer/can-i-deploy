@@ -2,6 +2,7 @@ import type { ModelType, QuantLevel, QuantName } from './types.js'
 
 /**
  * 量化档位静态表（PRD §5.4 / §7.1）。
+ * bitsPerParam 为每参数字节数：fp16=2B、fp8/Q8_0=1B、Q6=0.75B、Q5=0.625B、Q4=0.5B。
  * LLM/VLM：fp16 + GGUF Q8_0 / Q6_K / Q5_K_M / Q4_K_M（砍掉 Q3/Q2，决策回顾 Q5）
  * 图像生成：fp16 + fp8
  */

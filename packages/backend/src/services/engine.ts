@@ -67,9 +67,13 @@ function toGb(bytes: number): number {
   return bytes / GIB
 }
 
-/** 权重字节 = 参数量 × 每参数比特 / 8（PRD §7.1） */
-export function computeWeightBytes(paramsB: number, bitsPerParam: number): number {
-  return paramsB * 1e9 * (bitsPerParam / 8)
+/**
+ * 权重字节 = 参数量 × 每参数字节。
+ * 注意：quantizations.bits_per_param 实为"每参数字节数"（PRD §7.1 命名）：fp16=2B、Q8=1B、Q4=0.5B。
+ * 早期实现误当比特并除以 8，导致 VRAM 整体缩小 8 倍，已修正。
+ */
+export function computeWeightBytes(paramsB: number, bytesPerParam: number): number {
+  return paramsB * 1e9 * bytesPerParam
 }
 
 /**

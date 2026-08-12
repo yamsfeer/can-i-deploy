@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS quantizations (
   model_id        INTEGER NOT NULL REFERENCES models(id) ON DELETE CASCADE,
   format          TEXT NOT NULL CHECK (format IN ('safetensors','gguf')),
   quant_name      TEXT NOT NULL,                -- 'fp16' | 'fp8' | 'Q8_0' | 'Q6_K' | 'Q5_K_M' | 'Q4_K_M'
-  bits_per_param  REAL NOT NULL,                -- 2.0 / 1.0 / 0.75 / 0.625 / 0.5
+  bits_per_param  REAL NOT NULL,                -- 每参数字节数：fp16=2.0 / Q8=1.0 / Q6=0.75 / Q5=0.625 / Q4=0.5
   weight_bytes    INTEGER,                      -- 该档位权重大小
   official        INTEGER DEFAULT 1,            -- 恒为 1（只收官方量化）
   url             TEXT,

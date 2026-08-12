@@ -54,7 +54,10 @@ export interface TierDef {
 /** 量化档位静态定义 */
 export interface QuantLevel {
   name: QuantName
-  /** 每参数比特数（fp16=2.0、Q8=1.0、Q6=0.75、Q5=0.625、Q4=0.5） */
+  /**
+   * 每参数字节数（PRD §7.1 命名 bits_per_param，实为字节数）：
+   * fp16=2B、Q8=1B、Q6=0.75B、Q5=0.625B、Q4=0.5B。权重字节 = params × 该值。
+   */
   bitsPerParam: number
   format: QuantFormat
 }

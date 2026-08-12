@@ -71,13 +71,25 @@ export const ORGANIZATIONS: ReadonlyArray<{
   { name: 'Cohere', hf_author: 'CohereForAI', modelscope_org: 'CohereForAI' },
   { name: 'NVIDIA', hf_author: 'nvidia', modelscope_org: 'nvidia' },
   { name: 'Amazon', hf_author: 'amazon', modelscope_org: 'amazon' },
+  // 图像生成组织（PRD §4.1 覆盖图像，§5.1 白名单补充）
+  { name: 'Stability AI', hf_author: 'stabilityai', modelscope_org: 'stabilityai' },
+  { name: 'Black Forest Labs', hf_author: 'black-forest-labs', modelscope_org: 'black-forest-labs' },
 ]
 
-/** 架构名称 → KV cache 类型推断（匹配 config.json architecture / 模型名） */
+/**
+ * 架构名称 → KV cache 类型推断（匹配 config.json model_type / 架构类名）。
+ * MLA：DeepSeek-V2/V3/R1/V4 系（config.model_type 如 'deepseek_v3'，架构类名不含 'mla'）。
+ * GQA：现代主流架构（LLaMA/Qwen2/3/Gemma/Mistral/GLM/InternLM 等）。
+ * 其余（如老 LLaMA-1、GPT-2）按 MHA 兜底。
+ */
 export function inferKvCacheType(architecture: string | null | undefined): 'mha' | 'gqa' | 'mla' {
   const a = (architecture ?? '').toLowerCase()
-  if (a.includes('deepseek') && a.includes('mla')) return 'mla'
-  if (a.includes('llama') || a.includes('qwen2')) return 'gqa'
+  if (a.includes('deepseek') && (a.includes('mla') || /v[234]/.test(a) || a.includes('r1'))) return 'mla'
+  if (
+    /llama|qwen2|qwen3|gemma|mistral|glm|intern|yi|phi|nemo|nemotron|deepseek|grok|falcon|command/.test(a)
+  ) {
+    return 'gqa'
+  }
   return 'mha'
 }
 

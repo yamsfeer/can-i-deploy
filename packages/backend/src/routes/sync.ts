@@ -1,24 +1,38 @@
 /**
- * POST /api/sync — 手动触发数据拉取（限管理，本期占位）
- * M2 数据管道（HF + ModelScope 抓取）尚未实现，先记录执行日志。
+ * POST /api/sync — 手动触发数据拉取（限管理）。
+ * 调用真实 runSync（M2 数据管道），支持环境变量收敛请求量。
+ * GET  /api/sync/logs — 最近同步日志。
  */
 import type { FastifyInstance } from 'fastify'
-import { getDb } from '../db/index.js'
+import { runSync } from '../sync/index.js'
+
+declare module 'fastify' {
+  interface FastifyInstance {
+    /** 同步运行中标记（防并发触发） */
+    syncRunning?: boolean
+  }
+}
 
 export function syncRoutes(app: FastifyInstance) {
   app.post('/api/sync', async (_req, reply) => {
-    const db = getDb()
-    const now = new Date().toISOString()
-    db.prepare(
-      'INSERT INTO sync_logs (started_at, finished_at, status, message) VALUES (?, ?, ?, ?)',
-    ).run(now, now, 'skipped', 'M2 数据管道未实现，手动同步暂为占位')
-    return {
-      ok: true,
-      message: 'M2 数据管道未实现（占位响应），同步日志已记录',
+    // 简单防呆：不允许并发触发
+    if (app.syncRunning) {
+      return reply.code(409).send({ error: '同步正在进行中，请稍后再试' })
+    }
+    app.syncRunning = true
+    try {
+      const summary = await runSync()
+      return { ok: true, ...summary }
+    } catch (err) {
+      app.log.error(err)
+      return reply.code(500).send({ error: '同步失败', message: String(err) })
+    } finally {
+      app.syncRunning = false
     }
   })
 
   app.get('/api/sync/logs', async () => {
+    const { getDb } = await import('../db/index.js')
     const db = getDb()
     const rows = db.prepare('SELECT * FROM sync_logs ORDER BY id DESC LIMIT 20').all()
     return { data: rows }

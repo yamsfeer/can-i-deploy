@@ -9,11 +9,11 @@
 
 ```
 └── packages/
-    ├── backend/     # Node + TS + Fastify 后端（已完成：SQLite + 预测引擎 + 5 REST 接口）
+    ├── backend/     # Node + TS + Fastify 后端（SQLite + 预测引擎 + 5 REST 接口 + M2 数据管道）
     │   └── src/
     │       ├── routes/     # REST 路由
     │       ├── services/   # 预测引擎（VRAM / 速度 / 4 档分级 / 换卡建议）
-    │       ├── sync/       # node-cron 每日定时任务框架
+    │       ├── sync/       # M2 数据管道：HF + ModelScope 客户端、参数量估算、精度兜底、upsert、定时任务
     │       └── db/         # node:sqlite（内置，零原生依赖）+ schema + seed
     ├── frontend/    # React + Vite + TS 前端 SPA（当前为骨架空壳，前端 Agent 实现中）
     └── shared/      # 前后端共享：DTO 类型、公式常量、量化档位、i18n key
@@ -43,7 +43,7 @@ pnpm --filter @can-i-deploy/frontend dev   # 前端 → http://127.0.0.1:5173（
 | M1 monorepo 骨架 + SQLite schema + 白名单 + i18n 框架 | ✅ |
 | M3 预测引擎（硬件库 / VRAM / 速度 / 分级 / 换卡建议） | ✅ |
 | 后端 API（hardware / models / models/:id / tiers / organizations） | ✅ |
-| M2 数据管道（HF + ModelScope 抓取、每日定时任务） | ⏳ 占位待实现 |
+| M2 数据管道（HF + ModelScope 抓取、参数量估算、精度兜底、每日定时任务） | ✅ |
 | M4 前端四页 | ⏳ 前端 Agent 并行开发中 |
 | M5 部署 | ⏳ |
 
@@ -54,4 +54,5 @@ pnpm --filter @can-i-deploy/backend typecheck    # 后端类型检查
 pnpm --filter @can-i-deploy/frontend typecheck   # 前端类型检查
 pnpm -r run typecheck                            # 全部
 pnpm --filter @can-i-deploy/backend seed         # 重建演示数据（可重复执行，幂等）
+pnpm --filter @can-i-deploy/backend sync:run     # 手动触发全量同步（SYNC_ORG_LIMIT / SYNC_MAX_MODELS_PER_ORG 可收敛请求量）
 ```
