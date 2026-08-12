@@ -8,9 +8,9 @@
     "node": ">=24.0.0"
   },
   "scripts": {
-    "dev": "pnpm --parallel --filter @can-i-deploy/api --filter @can-i-deploy/web run dev",
+    "dev": "pnpm --parallel --filter @can-i-deploy/backend --filter @can-i-deploy/frontend run dev",
     "build": "pnpm -r run build",
     "typecheck": "pnpm -r run typecheck",
-    "seed": "pnpm --filter @can-i-deploy/api run seed"
+    "seed": "pnpm --filter @can-i-deploy/backend run seed"
   }
 }

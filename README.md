@@ -8,25 +8,24 @@
 ## Monorepo 结构
 
 ```
-├── apps/
-│   ├── web/        # React + Vite + TS 前端 SPA（当前为骨架空壳，前端 Agent 实现中）
-│   └── api/        # Node + TS + Fastify 后端（已完成：SQLite + 预测引擎 + 5 REST 接口）
-│       └── src/
-│           ├── routes/     # REST 路由
-│           ├── services/   # 预测引擎（VRAM / 速度 / 4 档分级 / 换卡建议）
-│           ├── sync/       # node-cron 每日定时任务框架
-│           └── db/         # node:sqlite（内置，零原生依赖）+ schema + seed
 └── packages/
-    └── shared/     # 前后端共享：DTO 类型、公式常量、量化档位、i18n key
+    ├── backend/     # Node + TS + Fastify 后端（已完成：SQLite + 预测引擎 + 5 REST 接口）
+    │   └── src/
+    │       ├── routes/     # REST 路由
+    │       ├── services/   # 预测引擎（VRAM / 速度 / 4 档分级 / 换卡建议）
+    │       ├── sync/       # node-cron 每日定时任务框架
+    │       └── db/         # node:sqlite（内置，零原生依赖）+ schema + seed
+    ├── frontend/    # React + Vite + TS 前端 SPA（当前为骨架空壳，前端 Agent 实现中）
+    └── shared/      # 前后端共享：DTO 类型、公式常量、量化档位、i18n key
 ```
 
 ## 快速开始
 
 ```bash
-pnpm install                 # 安装全部依赖
-pnpm --filter @can-i-deploy/api seed   # 初始化数据库 + 演示数据（22 GPU / 8 模型）
-pnpm --filter @can-i-deploy/api dev    # 后端 → http://127.0.0.1:3001
-pnpm --filter @can-i-deploy/web dev    # 前端 → http://127.0.0.1:5173（/api 已代理到 3001）
+pnpm install                     # 安装全部依赖
+pnpm --filter @can-i-deploy/backend seed   # 初始化数据库 + 演示数据（22 GPU / 8 模型）
+pnpm --filter @can-i-deploy/backend dev    # 后端 → http://127.0.0.1:3001
+pnpm --filter @can-i-deploy/frontend dev   # 前端 → http://127.0.0.1:5173（/api 已代理到 3001）
 ```
 
 ## 前端对接
@@ -51,8 +50,8 @@ pnpm --filter @can-i-deploy/web dev    # 前端 → http://127.0.0.1:5173（/api
 ## 常用命令
 
 ```bash
-pnpm --filter @can-i-deploy/api typecheck   # 后端类型检查
-pnpm --filter @can-i-deploy/web typecheck   # 前端类型检查
-pnpm -r run typecheck                       # 全部
-pnpm --filter @can-i-deploy/api seed        # 重建演示数据（可重复执行，幂等）
+pnpm --filter @can-i-deploy/backend typecheck    # 后端类型检查
+pnpm --filter @can-i-deploy/frontend typecheck   # 前端类型检查
+pnpm -r run typecheck                            # 全部
+pnpm --filter @can-i-deploy/backend seed         # 重建演示数据（可重复执行，幂等）
 ```

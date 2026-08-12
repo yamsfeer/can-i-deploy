@@ -1,7 +1,7 @@
 /**
  * SQLite 连接与初始化。
  * 使用 Node 24 内置 node:sqlite（DatabaseSync），零原生编译依赖，部署省心。
- * 数据文件默认在 apps/api/data/，可用环境变量 DATABASE_PATH 覆盖。
+ * 数据文件默认在 packages/backend/data/，可用环境变量 DATABASE_PATH 覆盖。
  */
 import { DatabaseSync } from 'node:sqlite'
 import { mkdirSync, readFileSync } from 'node:fs'

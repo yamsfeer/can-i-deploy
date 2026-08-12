@@ -1,6 +1,6 @@
 /**
  * i18n key 常量。
- * 前端字典（apps/web/src/i18n/zh.json）以后端错误消息共用同一套 key。
+ * 前端字典（packages/frontend/src/i18n/zh.json）以后端错误消息共用同一套 key。
  * 一期只启用中文（zh），en 预留在二期。
  */
 

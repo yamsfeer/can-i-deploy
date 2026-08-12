@@ -12,13 +12,13 @@
 pnpm install
 
 # 1. 初始化数据库 + 演示数据（22 张 GPU / 8 个模型）
-pnpm --filter @can-i-deploy/api seed
+pnpm --filter @can-i-deploy/backend seed
 
 # 2. 启动后端（端口 3001）
-pnpm --filter @can-i-deploy/api dev
+pnpm --filter @can-i-deploy/backend dev
 
 # 3. 启动前端（端口 5173）
-pnpm --filter @can-i-deploy/web dev
+pnpm --filter @can-i-deploy/frontend dev
 ```
 
 - 前端 `vite.config.ts` 已配置 `/api` 代理到 `http://127.0.0.1:3001`，**前端直接请求相对路径 `/api/...` 即可，无需处理 CORS**。
@@ -405,5 +405,5 @@ interface Organization {
 ## 8. 后端开发备注（前端一般不需要关心）
 
 - 预测引擎：纯解析公式（PRD §7），常量集中在 `packages/shared/src/constants.ts`（带宽利用率、框架开销、图像 FLOPs 校准系数等）。
-- 数据库：Node 内置 `node:sqlite`（SQLite 单文件，`apps/api/data/`）。
+- 数据库：Node 内置 `node:sqlite`（SQLite 单文件，`packages/backend/data/`）。
 - `badge` 档位选择逻辑（前端只消费结果）：LLM/VLM 用 `Q4_K_M`、图像用 `fp8`；无该档官方量化时降级到最轻可用官方档。

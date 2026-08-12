@@ -7,7 +7,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@can-i-deploy/shared': fileURLToPath(
-        new URL('../../packages/shared/src/index.ts', import.meta.url),
+        new URL('../shared/src/index.ts', import.meta.url),
       ),
     },
   },

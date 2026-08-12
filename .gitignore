@@ -4,10 +4,7 @@ dist/
 .DS_Store
 
 # 本地 SQLite 数据文件
-apps/api/data/*.db
-apps/api/data/*.db-journal
-apps/api/data/*.db-wal
-apps/api/data/*.db-shm
+packages/backend/data/
 
 # 环境变量
 .env

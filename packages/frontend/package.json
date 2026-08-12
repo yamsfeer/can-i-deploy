@@ -1,5 +1,5 @@
 {
-  "name": "@can-i-deploy/web",
+  "name": "@can-i-deploy/frontend",
   "version": "0.1.0",
   "private": true,
   "type": "module",

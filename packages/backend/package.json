@@ -1,5 +1,5 @@
 {
-  "name": "@can-i-deploy/api",
+  "name": "@can-i-deploy/backend",
   "version": "0.1.0",
   "private": true,
   "type": "module",

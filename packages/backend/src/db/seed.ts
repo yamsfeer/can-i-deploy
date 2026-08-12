@@ -5,7 +5,7 @@
  * 3. 代表性 demo 模型 + 官方量化（真实结构参数，用于 M1~M4 联调；M2 同步管道会接管真实数据）
  *
  * 幂等：可重复执行。
- * 运行：pnpm --filter @can-i-deploy/api seed
+ * 运行：pnpm --filter @can-i-deploy/backend seed
  */
 import { ORGANIZATIONS } from '@can-i-deploy/shared'
 import { getDb } from './index.js'
