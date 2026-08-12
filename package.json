@@ -1,0 +1,16 @@
+{
+  "name": "can-i-deploy",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@11.6.0",
+  "description": "Can I Deploy — 选硬件看模型，判断能不能跑、跑得多好",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "dev": "pnpm --parallel --filter @can-i-deploy/api --filter @can-i-deploy/web run dev",
+    "build": "pnpm -r run build",
+    "typecheck": "pnpm -r run typecheck",
+    "seed": "pnpm --filter @can-i-deploy/api run seed"
+  }
+}
