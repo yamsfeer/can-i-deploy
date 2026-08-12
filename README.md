@@ -34,7 +34,11 @@ pnpm --filter @can-i-deploy/frontend dev   # 前端 → http://127.0.0.1:5173（
 
 - 分级计算全在后端，前端零逻辑，只传 `gpu_id / custom_vram / context` 参数并渲染结果。
 - 共享类型从 `@can-i-deploy/shared` 导入（Vite alias 已配置）。
-- 前端当前为骨架空壳（路由 + i18n 机制 + API client + 占位页面），四页 UI 待实现。
+- **前端数据层已完成**（`feat/frontend` 分支）：
+  - `src/api` — client（全部接口封装 + 统一错误处理）+ filters（URL query 筛选状态双向转换）
+  - `src/hooks` — useModels / useModelDetail / useHardware / useTiers / useOrganizations（loading/error/data/refresh/stale，搜索 400ms 与上下文 300ms 防抖）
+  - `src/lib/format` — 数值格式化（参数量 / 下载量 / VRAM / 速度）
+  - 四页 UI 待设计稿定稿后实现（当前为占位空壳）。
 
 ## 当前进度
 
