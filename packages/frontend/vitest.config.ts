@@ -17,6 +17,12 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
-    include: ['src/**/*.test.{ts,tsx}'],
+    include: ['src/**/*.test.{ts,tsx}', 'e2e/**/*.test.ts'],
+    coverage: {
+      provider: 'v8',
+      // 只统计应用源码；单测文件、E2E 目录、测试工具与类型声明不算覆盖率
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: ['src/**/*.test.{ts,tsx}', 'src/test-utils/**', 'src/vite-env.d.ts'],
+    },
   },
 })

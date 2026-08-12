@@ -6,7 +6,14 @@
  */
 import type { GpuSpec, ModelDetail, ModelSummary, Organization, TierDef } from '@can-i-deploy/shared'
 
-const BASE = import.meta.env.VITE_API_BASE ?? ''
+/**
+ * API 基地址：默认同源（开发时由 Vite 代理 /api → 后端）。
+ * E2E / 自定义部署场景可用 VITE_API_BASE 覆盖为完整后端地址（如 http://127.0.0.1:3001）。
+ * 设计为函数而非常量：允许在测试中于请求前设置环境变量，而无需重建模块。
+ */
+export function apiBase(): string {
+  return (import.meta.env.VITE_API_BASE as string | undefined) ?? ''
+}
 
 /** 请求可选的取消信号（数据层 hooks 用 AbortController 防止过期响应覆盖新状态） */
 export interface RequestOptions {
@@ -102,7 +109,7 @@ export interface SyncLogsResponse {
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   let res: Response
   try {
-    res = await fetch(`${BASE}${path}`, {
+    res = await fetch(`${apiBase()}${path}`, {
       headers: { Accept: 'application/json', ...(init.headers ?? {}) },
       ...init,
     })

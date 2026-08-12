@@ -12,5 +12,5 @@
       "@can-i-deploy/shared": ["../shared/src/index.ts"]
     }
   },
-  "include": ["src"]
+  "include": ["src", "e2e"]
 }

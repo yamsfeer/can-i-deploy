@@ -11,6 +11,7 @@
     "dev": "pnpm --parallel --filter @can-i-deploy/backend --filter @can-i-deploy/frontend run dev",
     "build": "pnpm -r run build",
     "typecheck": "pnpm -r run typecheck",
-    "seed": "pnpm --filter @can-i-deploy/backend run seed"
+    "seed": "pnpm --filter @can-i-deploy/backend run seed",
+    "test:e2e": "pnpm --filter @can-i-deploy/frontend run test:e2e"
   }
 }
