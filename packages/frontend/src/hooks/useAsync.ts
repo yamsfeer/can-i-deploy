@@ -9,6 +9,8 @@ export interface AsyncState<T> {
   loading: boolean
   /** 错误可读文案（网络失败 / 后端 error 字段 / HTTP 状态码） */
   error: string | null
+  /** 原始错误对象（如 ApiError，UI 需要 status 等细节时用） */
+  errorRaw: unknown
   /** 强制重新请求（不依赖 deps 变化） */
   refresh: () => void
 }
@@ -21,6 +23,7 @@ export function useAsync<T>(fetcher: (signal: AbortSignal) => Promise<T>, deps: 
   const [data, setData] = useState<T | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [errorRaw, setErrorRaw] = useState<unknown>(null)
   const [nonce, setNonce] = useState(0)
 
   useEffect(() => {
@@ -29,6 +32,7 @@ export function useAsync<T>(fetcher: (signal: AbortSignal) => Promise<T>, deps: 
 
     setLoading(true)
     setError(null)
+    setErrorRaw(null)
 
     fetcher(controller.signal)
       .then((result) => {
@@ -40,6 +44,7 @@ export function useAsync<T>(fetcher: (signal: AbortSignal) => Promise<T>, deps: 
         // 主动 abort（被新请求取代 / 组件卸载）不视为错误
         if (!active) return
         if (err instanceof DOMException && err.name === 'AbortError') return
+        setErrorRaw(err)
         setError(err instanceof Error ? err.message : String(err))
         setLoading(false)
       })
@@ -53,5 +58,5 @@ export function useAsync<T>(fetcher: (signal: AbortSignal) => Promise<T>, deps: 
 
   const refresh = useCallback(() => setNonce((n) => n + 1), [])
 
-  return { data, loading, error, refresh }
+  return { data, loading, error, errorRaw, refresh }
 }

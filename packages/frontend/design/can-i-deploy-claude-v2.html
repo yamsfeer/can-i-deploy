@@ -1,0 +1,1416 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Can I Deploy — 选硬件看模型</title>
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   Can I Deploy · UI 设计稿（Claude 米黄风格）
+   设计系统：Claude (Anthropic) —— Parchment 画布 + Terracotta 强调
+   全部色值来自 assets/design-systems/claude/DESIGN.md；
+   4 档分级色来自产品契约 docs/API.md §2.2（后端 /api/tiers 动态提供）。
+   ═══════════════════════════════════════════════════════════════ */
+:root {
+  /* —— Claude 暖调画布 —— */
+  --bg:            #f5f4ed;   /* Parchment  页面背景（Claude 的"纸"） */
+  --surface:       #faf9f5;   /* Ivory      卡片与容器 */
+  --surface-2:     #ffffff;   /* Pure White 按钮亮面 */
+  --ink:           #141413;   /* Near Black 正文（暖黑，非纯黑） */
+  --ink-2:         #3d3d3a;   /* Dark Warm  链接 / 强调文本 */
+  --muted:         #5e5d59;   /* Olive Gray 次级文本（暖灰） */
+  --faint:         #87867f;   /* Stone Gray 三级 / 元数据 */
+  --border:        #f0eee6;   /* Border Cream 常规描边 */
+  --border-2:      #e8e6dc;   /* Border Warm 强调分割线 */
+  --accent:        #c96442;   /* Terracotta 品牌强调 */
+  --accent-deep:   #b05332;   /* Terracotta 悬停加深 */
+  --coral:         #d97757;   /* Coral 浅强调 */
+  --danger:        #b53333;   /* Error Crimson 错误 */
+  --focus:         #3898ec;   /* Focus Blue 全站唯一冷色，仅焦点环 */
+  --dark:          #30302e;   /* Dark Surface 深色面 */
+  --on-dark:       #b0aea5;   /* Warm Silver 深底浅字 */
+
+  /* —— 4 档分级语义色（产品契约，badge / 图例 / 阈值表共用） —— */
+  --tier-smooth:      #16a34a;
+  --tier-smooth-fg:   #0d6f32;  --tier-smooth-bg: #e7f3eb;  --tier-smooth-bd: #c3e0ce;
+  --tier-ok:          #2563eb;
+  --tier-ok-fg:       #1d54b3;  --tier-ok-bg:      #e9f0fc;  --tier-ok-bd:      #c5d8f4;
+  --tier-tight:       #ca8a04;
+  --tier-tight-fg:    #7c5c00;  --tier-tight-bg:   #faf3dd;  --tier-tight-bd:   #ecdcab;
+  --tier-no:          #dc2626;
+  --tier-no-fg:       #ae241b;  --tier-no-bg:      #fdecea;  --tier-no-bd:      #f1c7c1;
+
+  /* —— 深度 / 圆角 —— */
+  --shadow-whisper: 0 4px 24px rgba(20, 20, 19, 0.05);
+  --radius: 10px; --radius-lg: 14px; --radius-xl: 20px;
+
+  /* —— 数据源标签（HF 暖金 / MS 蓝，语义色） —— */
+  --hf-fg: #8a5a00; --hf-bg: #fdf3e0; --hf-bd: #f0dfb5;
+  --ms-fg: #1d54b3; --ms-bg: #e9f0fc; --ms-bd: #c5d8f4;
+
+  /* —— 交互派生色（hover / shimmer，color-mix 派生避免裸 hex） —— */
+  --hover-border: color-mix(in srgb, var(--muted) 14%, var(--border-2));   /* ≈ #d5d2c6 */
+  --hover-sand:   color-mix(in srgb, var(--muted) 8%, var(--border-2));    /* ≈ #dddacd */
+  --shimmer-hi:   color-mix(in srgb, var(--faint) 6%, var(--border-2));    /* ≈ #e2dfd3 */
+
+  /* —— 字体（Claude：Serif 标题 / Sans 界面 / Mono 数字，系统栈替代） —— */
+  --font-display: Georgia, 'Songti SC', 'STSong', 'Noto Serif CJK SC', 'SimSun', 'Times New Roman', serif;
+  --font-body: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Segoe UI', sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 16px/1.7 var(--font-body);   /* CJK 正文行高 ≥1.7 */
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 { font-family: var(--font-display); font-weight: 500; margin: 0; line-height: 1.35; }
+p { margin: 0; }
+a { color: var(--ink-2); }
+a:hover { color: var(--ink); }
+button { font: inherit; color: inherit; }
+select, input { font: inherit; color: inherit; }
+
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+
+::selection { background: color-mix(in srgb, var(--accent) 22%, transparent); }
+
+/* ─── 布局骨架 ─── */
+.wrap { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+
+/* 顶部导航：Claude 式 sticky top nav */
+.topnav {
+  position: sticky; top: 0; z-index: 50;
+  background: color-mix(in srgb, var(--bg) 88%, var(--surface));
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(10px);
+}
+.topnav-inner { display: flex; align-items: center; gap: 28px; height: 60px; }
+.brand { display: inline-flex; align-items: center; gap: 9px; text-decoration: none; color: var(--ink); font-family: var(--font-display); font-size: 19px; letter-spacing: 0; }
+.brand .mark { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 8px; background: var(--accent); color: var(--surface-2); }
+.brand:hover .mark { background: var(--accent-deep); }
+.nav { display: flex; gap: 4px; flex: 1; }
+.nav a { position: relative; padding: 8px 13px; border-radius: 8px; text-decoration: none; color: var(--muted); font-size: 15px; font-weight: 500; }
+.nav a:hover { color: var(--ink); background: var(--surface); }
+.nav a.active { color: var(--ink); }
+.nav a.active::after { content: ''; position: absolute; left: 13px; right: 13px; bottom: 2px; height: 2px; border-radius: 1px; background: var(--accent); }
+.topnav-meta { display: flex; align-items: center; gap: 10px; color: var(--faint); font-size: 12.5px; }
+.topnav-meta .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+
+main { padding: 0 0 72px; }
+.page { display: none; }
+.page.active { display: block; }
+
+/* ─── 通用组件 ─── */
+.eyebrow {
+  font-size: 12px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--accent); margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
+}
+.eyebrow::before { content: ''; width: 22px; height: 1px; background: var(--accent); }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+}
+.card + .card { margin-top: 16px; }
+
+.btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 8px 14px; border-radius: 10px; cursor: pointer;
+  border: 1px solid transparent; text-decoration: none;
+  font-size: 14px; font-weight: 500; letter-spacing: 0.01em;
+  transition: background 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+}
+.btn:active { transform: translateY(1px); }
+.btn-primary { background: var(--accent); color: var(--surface-2); }
+.btn-primary:hover { background: var(--accent-deep); color: var(--surface-2); }
+.btn-sand { background: var(--border-2); color: var(--ink-2); border-color: var(--border-2); }
+.btn-sand:hover { background: var(--hover-sand); color: var(--ink); }
+.btn-dark { background: var(--dark); color: var(--surface); }
+.btn-dark:hover { background: var(--ink); color: var(--surface-2); }
+.btn-ghost { background: transparent; color: var(--ink-2); border-color: var(--border-2); }
+.btn-ghost:hover { background: var(--surface); color: var(--ink); border-color: var(--hover-border); }
+
+.pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 2.5px 10px; border-radius: 999px;
+  font-size: 12px; font-weight: 500; letter-spacing: 0.02em; line-height: 1.5;
+  background: var(--bg); border: 1px solid var(--border-2); color: var(--muted);
+  white-space: nowrap;
+}
+.pill.src-hf { color: var(--hf-fg); background: var(--hf-bg); border-color: var(--hf-bd); }
+.pill.src-ms { color: var(--ms-fg); background: var(--ms-bg); border-color: var(--ms-bd); }
+
+/* 4 档分级 badge */
+.badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 10px; border-radius: 999px;
+  font-size: 12.5px; font-weight: 500; letter-spacing: 0.02em; line-height: 1.45;
+  border: 1px solid; white-space: nowrap;
+}
+.badge::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex: none; }
+.badge.smooth { color: var(--tier-smooth-fg); background: var(--tier-smooth-bg); border-color: var(--tier-smooth-bd); }
+.badge.ok     { color: var(--tier-ok-fg);     background: var(--tier-ok-bg);     border-color: var(--tier-ok-bd); }
+.badge.tight  { color: var(--tier-tight-fg);  background: var(--tier-tight-bg);  border-color: var(--tier-tight-bd); }
+.badge.no     { color: var(--tier-no-fg);     background: var(--tier-no-bg);     border-color: var(--tier-no-bd); }
+.badge.none   { color: var(--faint); background: var(--bg); border-color: var(--border-2); }
+.badge.none::before { display: none; }
+
+.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 0.94em; letter-spacing: -0.01em; }
+
+.icon { width: 16px; height: 16px; flex: none; stroke: currentColor; stroke-width: 1.7; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ─── 首页 · Hero ─── */
+.hero { padding: 56px 0 30px; }
+.hero h1 { font-size: clamp(34px, 4.6vw, 52px); line-height: 1.3; letter-spacing: 0; max-width: 16em; }
+.hero .sub { margin-top: 16px; font-size: 18px; line-height: 1.8; color: var(--muted); max-width: 42em; }
+.hero .sub b { color: var(--ink); font-weight: 550; }
+
+/* 硬件选择面板 */
+.picker { margin-top: 30px; display: flex; flex-wrap: wrap; gap: 16px 30px; align-items: flex-end; }
+.picker .field { display: flex; flex-direction: column; gap: 8px; }
+.picker label { font-size: 12.5px; font-weight: 500; color: var(--faint); letter-spacing: 0.04em; }
+.picker select, .picker input[type="number"] {
+  appearance: none; -webkit-appearance: none;
+  height: 42px; padding: 0 38px 0 14px; border-radius: var(--radius);
+  border: 1px solid var(--border-2); background: var(--surface-2); color: var(--ink);
+  font-size: 14.5px; min-width: 230px; cursor: pointer;
+  box-shadow: inset 0 0 0 1px transparent;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.picker select:hover, .picker input[type="number"]:hover { border-color: var(--hover-border); }
+.picker select:focus, .picker input[type="number"]:focus { border-color: var(--focus); box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 14%, transparent); }
+.picker select:disabled, .picker input[type="number"]:disabled {
+  background: var(--bg); color: var(--faint); border-color: var(--border); cursor: not-allowed; opacity: 0.75;
+}
+.picker .select-wrap { position: relative; display: inline-flex; }
+.picker .select-wrap::after {
+  content: ''; position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+  width: 9px; height: 9px; border-right: 1.8px solid var(--muted); border-bottom: 1.8px solid var(--muted);
+  transform: translateY(-70%) rotate(45deg); pointer-events: none;
+}
+.picker input[type="number"] { width: 140px; min-width: 140px; padding: 0 12px; }
+/* “或”分隔：与下方控件等高、垂直居中，用细线引导视线 */
+.picker .or-sep {
+  align-self: flex-end; height: 42px; display: flex; align-items: center;
+  color: var(--faint); font-size: 13px; padding: 0 6px; user-select: none;
+}
+
+/* 自定义显存开关 */
+.switch { position: relative; display: inline-flex; align-items: center; gap: 9px; cursor: pointer; user-select: none; }
+.switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+.switch .track { width: 36px; height: 21px; border-radius: 999px; background: var(--border-2); transition: background 0.18s ease; position: relative; flex: none; }
+.switch .track::after { content: ''; position: absolute; top: 2.5px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: var(--surface-2); transition: transform 0.18s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.18); }
+.switch input:checked + .track { background: var(--accent); }
+.switch input:checked + .track::after { transform: translateX(14px); }
+.switch .switch-label { font-size: 14px; color: var(--ink-2); font-weight: 500; }
+
+/* 当前配置摘要：与下拉框等高（42px），右侧独立状态块，仅显示增量指标 */
+.picker-summary {
+  margin-left: auto; align-self: flex-end; height: 42px;
+  display: flex; align-items: center; gap: 0; padding: 0 16px;
+  border-radius: var(--radius); background: var(--bg); border: 1px solid var(--border-2);
+  font-size: 13px; color: var(--muted); white-space: nowrap;
+}
+.picker-summary .num { color: var(--ink); font-size: 14px; font-weight: 550; }
+.picker-summary .stat { display: inline-flex; align-items: baseline; gap: 5px; }
+.picker-summary .stat + .stat { padding-left: 14px; margin-left: 6px; border-left: 1px solid var(--border-2); }
+.picker-summary .sub { font-size: 11px; color: var(--faint); }
+
+/* ─── 首页 · 工具条 ─── */
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin: 30px 0 16px; }
+.tabs { display: inline-flex; align-items: stretch; height: 38px; padding: 3px; background: var(--surface); border: 1px solid var(--border-2); border-radius: 999px; gap: 2px; box-sizing: border-box; }
+.tabs button {
+  border: 0; background: transparent; padding: 0 16px; border-radius: 999px;
+  font-size: 13.5px; font-weight: 500; line-height: 1; color: var(--muted); cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px; transition: all 0.15s ease;
+}
+.tabs button:hover { color: var(--ink); }
+.tabs button.active { background: var(--ink); color: var(--bg); }
+.tabs .cnt { font-family: var(--font-mono); font-size: 11.5px; opacity: 0.75; }
+
+.search { position: relative; display: inline-flex; flex: 1; min-width: 200px; max-width: 300px; }
+.search input {
+  width: 100%; height: 38px; padding: 0 36px 0 36px; border-radius: 999px;
+  border: 1px solid var(--border-2); background: var(--surface); font-size: 14px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.search input:hover { border-color: var(--hover-border); }
+.search input:focus { border-color: var(--focus); background: var(--surface-2); box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 14%, transparent); }
+.search .icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--faint); }
+.search .clear {
+  position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+  width: 26px; height: 26px; border-radius: 50%; border: 0; background: transparent;
+  color: var(--faint); cursor: pointer; display: none; place-items: center;
+}
+.search.has-value .clear { display: grid; }
+.search .clear:hover { color: var(--ink); background: var(--bg); }
+
+.sort { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--faint); }
+.sort select { height: 38px; padding: 0 32px 0 12px; border-radius: 999px; border: 1px solid var(--border-2); background: var(--surface); font-size: 13.5px; cursor: pointer; appearance: none; -webkit-appearance: none; transition: border-color 0.15s ease; }
+.sort select:hover { border-color: var(--hover-border); }
+.sort-wrap { position: relative; display: inline-flex; }
+.sort-wrap::after { content: ''; position: absolute; right: 13px; top: 50%; width: 7px; height: 7px; border-right: 1.6px solid var(--muted); border-bottom: 1.6px solid var(--muted); transform: translateY(-70%) rotate(45deg); pointer-events: none; }
+.toolbar .count { margin-left: auto; font-size: 13px; color: var(--faint); white-space: nowrap; }
+
+/* ─── 首页 · 模型表 ─── */
+.table-card { padding: 8px 0 12px; overflow: hidden; }
+.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+table.grid { width: 100%; border-collapse: collapse; min-width: 760px; }
+table.grid th {
+  padding: 14px 16px 13px;
+  font-size: 12px; font-weight: 600;
+  color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase;
+  border-bottom: 1px solid var(--border-2); white-space: nowrap;
+}
+/* 数值列右对齐 · 量化档 / 分级居中 */
+table.grid th:nth-child(2), table.grid td:nth-child(2),
+table.grid th:nth-child(5), table.grid td:nth-child(5),
+table.grid th:nth-child(6), table.grid td:nth-child(6),
+table.grid th:nth-child(7), table.grid td:nth-child(7) { text-align: right; }
+table.grid th:nth-child(3), table.grid td:nth-child(3),
+table.grid th:nth-child(4), table.grid td:nth-child(4) { text-align: center; }
+table.grid th:first-child, table.grid td:first-child { padding-left: 20px; }
+table.grid th:last-child, table.grid td:last-child { padding-right: 20px; }
+table.grid td { padding: 14px 16px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+table.grid td:nth-child(n+2) { white-space: nowrap; }
+table.grid tbody tr { transition: background 0.12s ease; }
+table.grid tbody tr:hover { background: var(--bg); }
+table.grid tbody tr:last-child td { border-bottom: 0; }
+/* 分级列内的小注（noteKey 场景）：短标签单行，不换行不截断；完整文案在 badge title 悬浮提示 */
+.cell-note {
+  margin: 5px auto 0;
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; line-height: 1.4; color: var(--muted); text-align: left;
+  white-space: nowrap;
+}
+.cell-note .icon { color: var(--faint); flex: none; }
+.icon-link { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 7px; color: var(--faint); }
+.icon-link:hover { background: var(--bg); color: var(--ink); }
+
+.cell-model { min-width: 240px; }
+.cell-model .name { font-weight: 550; font-size: 15px; color: var(--ink); text-decoration: none; display: inline-flex; align-items: center; gap: 8px; }
+.cell-model .name:hover { color: var(--accent-deep); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--border-2); }
+.cell-model .meta { display: flex; align-items: center; gap: 8px; margin-top: 4px; font-size: 12.5px; color: var(--faint); }
+.cell-model .meta .org { color: var(--muted); }
+.cell-model .meta .pill { font-size: 11px; padding: 1px 8px; letter-spacing: 0.04em; }
+.monogram {
+  display: inline-grid; place-items: center; width: 30px; height: 30px; flex: none;
+  border-radius: 9px; background: color-mix(in srgb, var(--accent) 12%, var(--surface-2));
+  color: var(--accent-deep); font-size: 12px; font-weight: 600; letter-spacing: 0.02em;
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--border));
+}
+.quant-tag { font-family: var(--font-mono); font-size: 12px; color: var(--ink-2); background: var(--bg); border: 1px solid var(--border-2); border-radius: 6px; padding: 2px 7px; white-space: nowrap; }
+.no-quant { font-size: 12.5px; color: var(--faint); }
+td .num { font-size: 14px; }
+.td-muted { color: var(--faint); }
+
+/* 行内说明（noteKey 场景） */
+.row-note { margin-top: 4px; font-size: 12px; color: var(--faint); display: flex; align-items: center; gap: 5px; }
+
+/* 加载骨架 */
+.skeleton-row td { padding: 16px; }
+.skel { height: 13px; border-radius: 5px; background: linear-gradient(90deg, var(--border) 25%, var(--shimmer-hi) 50%, var(--border) 75%); background-size: 220% 100%; animation: skel 1.1s linear infinite; }
+.skel.name { width: 68%; height: 15px; }
+.skel.w { width: 55%; }
+.skel.sm { width: 34%; }
+@keyframes skel { from { background-position: 200% 0; } to { background-position: -20% 0; } }
+
+/* 空状态 */
+.empty { padding: 56px 24px; text-align: center; }
+.empty .empty-icon { width: 44px; height: 44px; margin: 0 auto 16px; display: grid; place-items: center; border-radius: 14px; background: var(--bg); border: 1px solid var(--border-2); color: var(--faint); }
+.empty h2 { font-size: 21px; line-height: 1.4; }
+.empty p { margin: 8px auto 22px; color: var(--muted); max-width: 34em; font-size: 14.5px; }
+.empty .actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+
+/* 错误卡 */
+.error-card { border: 1px solid color-mix(in srgb, var(--danger) 30%, var(--border)); background: color-mix(in srgb, var(--danger) 4%, var(--surface)); }
+.error-card .err-title { display: flex; align-items: center; gap: 9px; font-weight: 550; color: var(--danger); font-size: 15px; }
+.error-card p { margin: 6px 0 14px; color: var(--muted); font-size: 14px; }
+
+/* 图例（details 折叠） */
+.legend { margin-top: 18px; }
+.legend details { border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); overflow: hidden; }
+.legend summary {
+  display: flex; align-items: center; gap: 9px; cursor: pointer; padding: 13px 18px;
+  font-size: 13.5px; font-weight: 500; color: var(--ink-2); list-style: none;
+}
+.legend summary::-webkit-details-marker { display: none; }
+.legend summary .chev { margin-left: auto; transition: transform 0.18s ease; color: var(--faint); }
+.legend details[open] summary .chev { transform: rotate(180deg); }
+.legend .legend-body { padding: 4px 18px 18px; border-top: 1px solid var(--border); }
+.legend .legend-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; padding-top: 16px; }
+.legend-item { display: flex; gap: 11px; align-items: flex-start; padding: 12px 14px; border-radius: var(--radius); background: var(--bg); border: 1px solid var(--border); }
+.legend-item .sw { width: 9px; height: 9px; border-radius: 50%; margin-top: 6px; flex: none; }
+.legend-item b { font-size: 13.5px; font-weight: 550; display: block; }
+.legend-item span { font-size: 12.5px; color: var(--muted); line-height: 1.55; display: block; margin-top: 2px; }
+
+/* ─── 详情页 ─── */
+.back-link { display: inline-flex; align-items: center; gap: 7px; margin: 30px 0 18px; font-size: 14px; color: var(--muted); text-decoration: none; padding: 6px 10px 6px 6px; border-radius: 8px; }
+.back-link:hover { color: var(--ink); background: var(--surface); }
+.detail-head { display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-start; margin-bottom: 26px; }
+.detail-head .title-block { flex: 1; min-width: 260px; }
+.detail-head .kicker { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.detail-head h1 { font-size: clamp(27px, 3.4vw, 38px); line-height: 1.3; word-break: break-word; }
+.detail-head .facts { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 13.5px; color: var(--muted); }
+.detail-head .facts .num { color: var(--ink); }
+.detail-head .head-actions { display: flex; flex-direction: column; gap: 9px; align-items: stretch; padding-top: 6px; }
+.detail-head .head-actions .btn { justify-content: center; }
+
+.detail-grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 18px; align-items: start; }
+@media (max-width: 980px) { .detail-grid { grid-template-columns: 1fr; } }
+
+.card h2, .card h3 { font-size: 17px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+.def-list { display: grid; grid-template-columns: 108px 1fr; gap: 11px 0; font-size: 14px; }
+.def-list dt { color: var(--muted); font-size: 13px; padding-top: 1px; }
+.def-list dd { margin: 0; color: var(--ink); min-width: 0; }
+.def-list dd .src-id { display: block; margin-top: 2px; font-family: var(--font-mono); font-size: 12.5px; color: var(--muted); word-break: break-all; }
+.def-list .num { font-size: 14px; }
+
+/* 量化表 */
+.quant-table { width: 100%; border-collapse: collapse; min-width: 660px; }
+.quant-table th { text-align: left; padding: 10px 12px; font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; border-bottom: 1px solid var(--border-2); white-space: nowrap; }
+.quant-table td { padding: 11px 12px; border-bottom: 1px solid var(--border); font-size: 14px; }
+.quant-table th:nth-child(2), .quant-table th:nth-child(3), .quant-table th:nth-child(4), .quant-table th:nth-child(5) { text-align: right; }
+.quant-table tr:not(.unavailable) td:nth-child(2),
+.quant-table tr:not(.unavailable) td:nth-child(3),
+.quant-table tr:not(.unavailable) td:nth-child(4),
+.quant-table tr:not(.unavailable) td:nth-child(5) { text-align: right; }
+.quant-table tr:last-child td { border-bottom: 0; }
+.quant-table tr.unavailable td { opacity: 0.5; background: var(--bg); }
+.quant-name { font-family: var(--font-mono); font-weight: 550; font-size: 13.5px; }
+.quant-name .fmt { margin-left: 7px; font-family: var(--font-body); font-size: 11.5px; font-weight: 400; color: var(--faint); }
+
+/* 上下文滑块 */
+.ctx-slider {
+  width: 100%; margin: 14px 0 6px;
+  appearance: none; -webkit-appearance: none;
+  height: 24px; background: transparent; cursor: pointer;  /* 24px 触控目标 */
+}
+.ctx-slider::-webkit-slider-runnable-track {
+  height: 4px; border-radius: 2px;
+  background: linear-gradient(90deg, var(--accent) var(--fill, 22%), var(--border-2) var(--fill, 22%));
+}
+.ctx-slider::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%;
+  background: var(--surface-2); border: 2px solid var(--accent);
+  cursor: grab; margin-top: -7px; box-shadow: 0 1px 4px rgba(20,20,19,0.15);
+}
+.ctx-slider::-webkit-slider-thumb:active { cursor: grabbing; transform: scale(1.08); }
+.ctx-slider::-moz-range-track { height: 4px; border-radius: 2px; background: var(--border-2); }
+.ctx-slider::-moz-range-progress { height: 4px; border-radius: 2px; background: var(--accent); }
+.ctx-slider::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: var(--surface-2); border: 2px solid var(--accent); cursor: grab; }
+.ctx-labels { display: flex; justify-content: space-between; font-size: 12px; color: var(--faint); }
+.ctx-readout { display: flex; align-items: baseline; gap: 8px; }
+.ctx-readout .val { font-family: var(--font-mono); font-size: 20px; color: var(--ink); letter-spacing: -0.02em; }
+.ctx-readout .unit { font-size: 12.5px; color: var(--muted); }
+.kv-est { margin-top: 10px; font-size: 13px; color: var(--muted); }
+.kv-est .num { color: var(--ink); }
+
+/* 建议卡 */
+.advice { border-radius: var(--radius-lg); padding: 18px 20px; border: 1px solid var(--border-2); background: var(--bg); }
+.advice.ok { border-color: var(--tier-smooth-bd); background: var(--tier-smooth-bg); }
+.advice.warn { border-color: var(--tier-tight-bd); background: var(--tier-tight-bg); }
+.advice.bad { border-color: var(--tier-no-bd); background: var(--tier-no-bg); }
+.advice .advice-title { display: flex; align-items: center; gap: 8px; font-weight: 550; font-size: 14px; margin-bottom: 5px; }
+.advice.ok .advice-title { color: var(--tier-smooth-fg); }
+.advice.warn .advice-title { color: var(--tier-tight-fg); }
+.advice.bad .advice-title { color: var(--tier-no-fg); }
+.advice p { font-size: 13.5px; color: var(--ink-2); line-height: 1.7; }
+.advice .num { font-weight: 550; }
+
+/* 未找到错误页 */
+.not-found { max-width: 520px; margin: 90px auto; text-align: center; }
+.not-found .big { font-family: var(--font-display); font-size: 72px; color: var(--border-2); line-height: 1; }
+.not-found h1 { font-size: 26px; margin: 14px 0 8px; }
+.not-found p { color: var(--muted); font-size: 15px; margin-bottom: 22px; }
+
+/* ─── 硬件页 ─── */
+.page-head { padding: 44px 0 8px; }
+.page-head h1 { font-size: clamp(30px, 4vw, 42px); line-height: 1.3; }
+.page-head .sub { margin-top: 10px; color: var(--muted); font-size: 16px; line-height: 1.7; }
+.page-head .sub b { color: var(--ink); font-weight: 550; }
+
+.cat-section { margin-top: 30px; }
+.cat-section h2 { font-size: 22px; display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.cat-section h2 .n { font-family: var(--font-mono); font-size: 12.5px; color: var(--faint); font-weight: 400; padding: 3px 9px; border-radius: 999px; background: var(--surface); border: 1px solid var(--border-2); }
+.hw-table { width: 100%; border-collapse: collapse; min-width: 720px; }
+.hw-table th { text-align: left; padding: 12px 14px; font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; border-bottom: 1px solid var(--border-2); white-space: nowrap; }
+.hw-table td { padding: 12px 14px; border-bottom: 1px solid var(--border); font-size: 14px; }
+.hw-table th:nth-child(2), .hw-table td:nth-child(2),
+.hw-table th:nth-child(3), .hw-table td:nth-child(3),
+.hw-table th:nth-child(4), .hw-table td:nth-child(4) { text-align: right; }
+.hw-table tr:last-child td { border-bottom: 0; }
+.hw-table tr:hover td { background: var(--bg); }
+.hw-name { font-weight: 550; }
+.hw-note { font-size: 12.5px; color: var(--faint); }
+.hw-note .num { color: var(--muted); }
+
+/* ─── 分档说明页 ─── */
+.tier-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(225px, 1fr)); gap: 14px; margin-top: 26px; }
+.tier-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px 20px 18px; }
+.tier-card .head { display: flex; align-items: center; gap: 9px; }
+.tier-card .sw { width: 11px; height: 11px; border-radius: 50%; }
+.tier-card .name { font-family: var(--font-display); font-size: 20px; font-weight: 500; }
+.tier-card .rule { margin-top: 9px; font-size: 13.5px; color: var(--ink-2); line-height: 1.65; }
+.tier-card .rule b { color: var(--ink); font-weight: 550; font-family: var(--font-mono); }
+.tier-card .badge { margin-top: 12px; }
+
+.threshold-table { width: 100%; border-collapse: collapse; min-width: 520px; }
+.threshold-table th { text-align: left; padding: 11px 14px; font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; border-bottom: 1px solid var(--border-2); }
+.threshold-table td { padding: 12px 14px; border-bottom: 1px solid var(--border); font-size: 14px; }
+.threshold-table th:nth-child(2), .threshold-table td:nth-child(2),
+.threshold-table th:nth-child(3), .threshold-table td:nth-child(3) { text-align: right; }
+.threshold-table tr:last-child td { border-bottom: 0; }
+.threshold-table .sw { width: 9px; height: 9px; border-radius: 50%; display: inline-block; margin-right: 8px; vertical-align: 1px; }
+
+.formula-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+.formula-box { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; font-size: 13.5px; color: var(--muted); }
+.formula-box .f-title { font-size: 12px; font-weight: 500; color: var(--faint); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 8px; }
+.formula-box code { font-family: var(--font-mono); font-size: 13px; color: var(--ink); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 2px 7px; white-space: nowrap; }
+.const-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.const-chips .pill { font-family: var(--font-mono); font-size: 12px; color: var(--ink-2); border-color: var(--border-2); background: var(--surface); }
+
+.rules-list { list-style: none; padding: 0; margin: 0; }
+.rules-list li { display: flex; gap: 10px; padding: 11px 0; border-bottom: 1px solid var(--border); font-size: 14px; color: var(--ink-2); }
+.rules-list li:last-child { border-bottom: 0; }
+.rules-list .tick { color: var(--tier-smooth-fg); flex: none; margin-top: 2px; }
+.rules-list code { font-family: var(--font-mono); font-size: 12.5px; background: var(--bg); border: 1px solid var(--border); border-radius: 5px; padding: 1px 6px; color: var(--ink-2); }
+
+.org-groups { display: grid; gap: 18px; }
+.org-group .g-title { font-size: 12.5px; font-weight: 500; color: var(--faint); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 10px; }
+.org-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.org-chip { display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px; border-radius: 999px; background: var(--surface); border: 1px solid var(--border-2); font-size: 13.5px; font-weight: 500; }
+.org-chip .mono { font-family: var(--font-mono); font-size: 11px; color: var(--muted); font-weight: 400; }
+.org-chip:hover { border-color: var(--accent); color: var(--accent-deep); }
+
+/* ─── 页脚 ─── */
+footer { border-top: 1px solid var(--border); padding: 30px 0 44px; margin-top: 20px; }
+.foot-inner { display: flex; flex-wrap: wrap; gap: 10px 32px; justify-content: space-between; font-size: 13px; color: var(--muted); line-height: 1.7; }
+.foot-inner b { color: var(--ink-2); font-weight: 600; }
+.foot-inner .foot-note { display: inline-flex; align-items: center; gap: 10px; }
+.foot-inner .demo-tag { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; background: var(--tier-tight-bg); color: var(--tier-tight-fg); border: 1px solid var(--tier-tight-bd); font-weight: 500; }
+
+/* ─── 响应式 ─── */
+/* 减少动态偏好 */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  html { scroll-behavior: auto; }
+}
+
+@media (max-width: 860px) {
+  .topnav-meta { display: none; }
+  .topnav-inner { gap: 12px; }
+  .nav a { padding: 8px 10px; font-size: 14px; }
+  .picker-summary { margin-left: 0; width: 100%; }
+  .hero { padding: 38px 0 22px; }
+  .hero h1 { font-size: clamp(28px, 7vw, 38px); }
+  .hero .sub { font-size: 16px; }
+  .toolbar .count { margin-left: 0; }
+}
+@media (max-width: 560px) {
+  .wrap { padding: 0 16px; }
+  .brand { font-size: 17px; gap: 7px; }
+  .nav a { padding: 8px 6px; font-size: 13.5px; }
+  .topnav-inner { gap: 8px; }
+  .picker .or-sep { align-self: flex-start; height: auto; padding: 0; }
+  .tabs { width: 100%; }
+  .tabs button { flex: 1; justify-content: center; padding: 7px 8px; }
+  .search { max-width: none; }
+  .sort { display: none; }
+  .cell-model { min-width: 200px; }
+  .detail-grid { grid-template-columns: 1fr; }
+  .def-list { grid-template-columns: 92px 1fr; }
+  .picker select { min-width: 0; width: 100%; }
+  .picker .field { width: 100%; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ 顶部导航 ═══════════════ -->
+<header class="topnav" data-od-id="topnav">
+  <div class="wrap topnav-inner">
+    <a class="brand" href="#/" aria-label="Can I Deploy 首页">
+      <span class="mark" aria-hidden="true">
+        <svg class="icon" viewBox="0 0 24 24" style="stroke-width:2">
+          <path d="M5 12h4l2-6 3 12 2-6h3" />
+        </svg>
+      </span>
+      Can I Deploy
+    </a>
+    <nav class="nav" aria-label="主导航">
+      <a href="#/" data-route="home">模型</a>
+      <a href="#/hardware" data-route="hardware">硬件</a>
+      <a href="#/tiers" data-route="tiers">分档说明</a>
+    </nav>
+    <div class="topnav-meta">
+      <span class="dot" aria-hidden="true"></span>
+      <span>数据 · Hugging Face × ModelScope 白名单官方模型</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+<!-- ═══════════════ ① 首页 · 模型目录 ═══════════════ -->
+<section id="page-models" class="page" data-od-id="page-models">
+  <div class="hero">
+    <h1>这块显卡，能跑什么模型？</h1>
+    <p class="sub">选硬件看模型，判断<b>能不能跑、跑得多好</b>。覆盖 LLM / VLM / 图像生成。</p>
+
+    <!-- 硬件选择面板 -->
+    <div class="picker card">
+      <div class="field">
+        <label for="gpu-select">目标硬件</label>
+        <div class="select-wrap">
+          <select id="gpu-select" aria-describedby="picker-hint"></select>
+        </div>
+      </div>
+      <div class="or-sep">或</div>
+      <div class="field">
+        <label for="custom-toggle" class="switch">
+          <input type="checkbox" id="custom-toggle" />
+          <span class="track" aria-hidden="true"></span>
+          <span class="switch-label">自定义显存</span>
+        </label>
+        <input type="number" id="custom-vram" min="1" max="512" step="1" placeholder="输入显存大小" aria-label="自定义显存（GB）" disabled />
+      </div>
+      <div class="picker-summary" id="picker-summary" aria-live="polite">
+        <span class="stat">带宽 <span class="num">272</span> GB/s</span><span class="stat">FP16 <span class="num">30.2</span> TFLOPS</span>
+      </div>
+      <p id="picker-hint" hidden></p>
+    </div>
+  </div>
+
+  <!-- 工具条 -->
+  <div class="toolbar" data-od-id="model-toolbar">
+    <div class="tabs" role="tablist" aria-label="模型类型">
+      <button role="tab" aria-selected="true" data-type="llm" class="active" title="快捷键 1">LLM <span class="cnt" data-cnt="llm"></span></button>
+      <button role="tab" aria-selected="false" data-type="vlm" title="快捷键 2">VLM <span class="cnt" data-cnt="vlm"></span></button>
+      <button role="tab" aria-selected="false" data-type="image" title="快捷键 3">图像生成 <span class="cnt" data-cnt="image"></span></button>
+    </div>
+    <div class="search" id="search-box">
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>
+      <input id="search-input" type="search" placeholder="搜索模型名 / 组织" title="按 / 聚焦 · Esc 清除" aria-label="搜索模型名或组织" />
+      <button class="clear" id="search-clear" aria-label="清除搜索">
+        <svg class="icon" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="sort">
+      <span>排序</span>
+      <div class="sort-wrap">
+        <select id="sort-select" aria-label="排序方式">
+          <option value="downloads">下载量</option>
+          <option value="params">参数量</option>
+          <option value="name">名称</option>
+        </select>
+      </div>
+    </div>
+    <span class="count" id="model-count" aria-live="polite"></span>
+  </div>
+
+  <!-- 模型列表 -->
+  <div class="card table-card" data-od-id="model-table">
+    <div class="table-scroll">
+      <table class="grid">
+        <thead>
+          <tr>
+            <th>模型</th>
+            <th>参数量</th>
+            <th>量化档</th>
+            <th>分级</th>
+            <th>VRAM 需求</th>
+            <th>速度</th>
+            <th>下载量</th>
+          </tr>
+        </thead>
+        <tbody id="model-rows"></tbody>
+      </table>
+    </div>
+
+    <!-- 加载骨架 -->
+    <div id="model-loading" hidden>
+      <table class="grid">
+        <tbody>
+          <tr class="skeleton-row"><td><div class="skel name"></div></td><td><div class="skel w"></div></td><td><div class="skel sm"></div></td><td><div class="skel w"></div></td><td><div class="skel sm"></div></td><td><div class="skel sm"></div></td><td><div class="skel sm"></div></td></tr>
+          <tr class="skeleton-row"><td><div class="skel name"></div></td><td><div class="skel w"></div></td><td><div class="skel sm"></div></td><td><div class="skel w"></div></td><td><div class="skel sm"></div></td><td><div class="skel sm"></div></td><td><div class="skel sm"></div></td></tr>
+          <tr class="skeleton-row"><td><div class="skel name"></div></td><td><div class="skel w"></div></td><td><div class="skel sm"></div></td><td><div class="skel w"></div></td><td><div class="skel sm"></div></td><td><div class="skel sm"></div></td><td><div class="skel sm"></div></td></tr>
+          <tr class="skeleton-row"><td><div class="skel name"></div></td><td><div class="skel w"></div></td><td><div class="skel sm"></div></td><td><div class="skel w"></div></td><td><div class="skel sm"></div></td><td><div class="skel sm"></div></td><td><div class="skel sm"></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 空状态 -->
+    <div id="model-empty" class="empty" hidden>
+      <div class="empty-icon" aria-hidden="true">
+        <svg class="icon" viewBox="0 0 24 24" style="width:22px;height:22px"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>
+      </div>
+      <h2>没有符合条件的模型</h2>
+      <p id="empty-desc">换一个关键词试试，或者把显存档位调高一些。</p>
+      <div class="actions">
+        <button class="btn btn-sand" id="empty-clear-search">清除搜索</button>
+        <button class="btn btn-ghost" id="empty-reset-gpu">换一张更大的卡</button>
+      </div>
+    </div>
+
+    <!-- 错误状态 -->
+    <div id="model-error" class="error-card card" hidden>
+      <div class="err-title">
+        <svg class="icon" viewBox="0 0 24 24" style="color:var(--danger)"><path d="M12 3.5L22 20H2L12 3.5z"/><path d="M12 10v5"/><path d="M12 17.6v.1"/></svg>
+        模型列表加载失败
+      </div>
+      <p>网络不可达或后端服务未启动。请确认已执行 <code style="font-family:var(--font-mono);font-size:12.5px">pnpm --filter @can-i-deploy/backend dev</code> 后重试。</p>
+      <button class="btn btn-sand" id="error-retry">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M3.5 8a9 9 0 1 1 2.2 9.8"/><path d="M3.5 3.5V8H8"/></svg>
+        重试
+      </button>
+    </div>
+  </div>
+
+  <!-- 分档图例（可展开） -->
+  <div class="legend" data-od-id="tier-legend">
+    <details>
+      <summary>
+        <svg class="icon" viewBox="0 0 24 24" style="color:var(--accent)"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><path d="M12 16.4v.1"/></svg>
+        四档分级规则
+        <svg class="icon chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </summary>
+      <div class="legend-body">
+        <div class="legend-grid" id="legend-grid"></div>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ═══════════════ ② 模型详情页 ═══════════════ -->
+<section id="page-detail" class="page" data-od-id="page-detail">
+  <div id="detail-body"></div>
+
+  <!-- 模型不存在错误态 -->
+  <div id="detail-notfound" class="not-found" hidden>
+    <div class="big" aria-hidden="true">404</div>
+    <h1>模型不存在</h1>
+    <p>该模型不在白名单目录中，或链接有误。返回目录重新选择。</p>
+    <a class="btn btn-dark" href="#/">
+      <svg class="icon" viewBox="0 0 24 24"><path d="M19 12H5"/><path d="M12 5l-7 7 7 7"/></svg>
+      返回模型目录
+    </a>
+  </div>
+</section>
+
+<!-- ═══════════════ ③ 硬件页 ═══════════════ -->
+<section id="page-hardware" class="page" data-od-id="page-hardware">
+  <div class="page-head">
+    <div class="eyebrow">Hardware</div>
+    <h1>硬件库</h1>
+    <p class="sub">消费级 / 专业级 / 云实例映射 · <b>手工维护</b> · 带宽与 FP16 算力是分级公式的核心输入</p>
+  </div>
+  <div id="hw-groups"></div>
+</section>
+
+<!-- ═══════════════ ④ 分档说明页 ═══════════════ -->
+<section id="page-tiers" class="page" data-od-id="page-tiers">
+  <div class="page-head">
+    <div class="eyebrow">Tiers</div>
+    <h1>分档说明</h1>
+    <p class="sub">先判显存硬约束，再按速度分档，<b>全站统一</b>。</p>
+  </div>
+
+  <div class="tier-cards" data-od-id="tier-cards" id="tier-cards"></div>
+
+  <div class="card" style="margin-top:26px" data-od-id="tier-thresholds">
+    <h2>阈值速查</h2>
+    <div class="table-scroll">
+      <table class="threshold-table">
+        <thead><tr><th>档位</th><th>LLM / VLM（tok/s）</th><th>图像生成（秒/张，SDXL 30 步 1024² 基准）</th><th>含义</th></tr></thead>
+        <tbody id="threshold-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card" data-od-id="tier-formulas">
+    <h2>计算公式（简）</h2>
+    <div class="formula-grid">
+      <div class="formula-box">
+        <div class="f-title">VRAM 需求</div>
+        <code>VRAM = 权重字节 + KV cache + 框架开销</code>
+        <p style="margin-top:8px">权重按档位字节（fp16 2B · Q4 0.5B）计算，KV 随上下文与架构伸缩，框架开销 0.75 GB。</p>
+      </div>
+      <div class="formula-box">
+        <div class="f-title">速度预测</div>
+        <code>tok/s ≈ min(带宽约束, 算力约束)</code>
+        <p style="margin-top:8px">LLM 以显存带宽为主，图像以算力为主；解析公式估算，不采实测数据。</p>
+      </div>
+      <div class="formula-box">
+        <div class="f-title">工程常量</div>
+        <div class="const-chips">
+          <span class="pill">带宽利用率 0.8</span>
+          <span class="pill">系统预留 0.5 GB</span>
+          <span class="pill">最小余量 1 GB</span>
+          <span class="pill">默认上下文 8K</span>
+          <span class="pill">图像 FLOPs 系数 1200</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" data-od-id="tier-rules">
+    <h2>附加规则</h2>
+    <ul class="rules-list">
+      <li>
+        <svg class="icon tick" viewBox="0 0 24 24"><path d="M4.5 12.5l5 5 10-11"/></svg>
+        <span>放得下但显存余量 &lt; <code>1 GB</code> → 强制降为「勉强」，防 OOM 抖动。</span>
+      </li>
+      <li>
+        <svg class="icon tick" viewBox="0 0 24 24"><path d="M4.5 12.5l5 5 10-11"/></svg>
+        <span>可用显存 = 显存 − <code>0.5 GB</code> 系统预留（CUDA context + 引擎常驻）。</span>
+      </li>
+      <li>
+        <svg class="icon tick" viewBox="0 0 24 24"><path d="M4.5 12.5l5 5 10-11"/></svg>
+        <span>无官方量化自动降级到最轻可用档；自定义显存只判容量，速度不可预估。</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="card" data-od-id="tier-orgs">
+    <h2>白名单组织</h2>
+    <p style="font-size:13.5px;color:var(--muted);margin:-8px 0 18px">仅收双源白名单大厂官方模型，社区量化一律不收。</p>
+    <div class="org-groups" id="org-groups"></div>
+  </div>
+</section>
+
+</main>
+
+<footer data-od-id="footer">
+  <div class="wrap foot-inner">
+    <div><b>Can I Deploy</b> · UI 设计稿 v2（Claude 米黄风格）</div>
+    <div class="foot-note"><span class="demo-tag">演示数据</span><span>seed：22 GPU / 8 模型，接入 M2 管道后自动扩充</span></div>
+    <div>数据源 Hugging Face × ModelScope · 覆盖 LLM / VLM / 图像生成</div>
+  </div>
+</footer>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   设计稿交互模拟（对应 docs/API.md 的接口语义）。
+   真实实现中：数据来自 /api/hardware、/api/models、/api/models/:id、
+   /api/tiers；分级由后端计算，前端零公式。此处仅用于静态演示。
+   ═══════════════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+
+  /* ── 硬件库（GET /api/hardware · seed 22 卡） ── */
+  var GPUS = [
+    { name: 'RTX 4060', cat: 'consumer', vram: 8,  bw: 272,  fp16: 30.2,  tier: 8 },
+    { name: 'RTX 3060 12GB', cat: 'consumer', vram: 12, bw: 360, fp16: 25.4, tier: 12 },
+    { name: 'RTX 3080', cat: 'consumer', vram: 10, bw: 760, fp16: 59.6, tier: 8 },
+    { name: 'RTX 2080 Ti', cat: 'consumer', vram: 11, bw: 616, fp16: 27, tier: 8 },
+    { name: 'RTX 4070', cat: 'consumer', vram: 12, bw: 504, fp16: 58.4, tier: 12 },
+    { name: 'RTX 4060 Ti 16GB', cat: 'consumer', vram: 16, bw: 288, fp16: 44.2, tier: 16 },
+    { name: 'RTX 4070 Ti Super', cat: 'consumer', vram: 16, bw: 672, fp16: 88.8, tier: 16 },
+    { name: 'RTX 4080 Super', cat: 'consumer', vram: 16, bw: 736, fp16: 104.8, tier: 16 },
+    { name: 'RTX 3090', cat: 'consumer', vram: 24, bw: 936, fp16: 71.2, tier: 24 },
+    { name: 'RTX 4090', cat: 'consumer', vram: 24, bw: 1008, fp16: 165.2, tier: 24 },
+    { name: 'RTX 5090', cat: 'consumer', vram: 32, bw: 1792, fp16: 209.6, tier: 32 },
+    { name: 'V100 16GB', cat: 'pro', vram: 16, bw: 900, fp16: 28.2, tier: 16, note: '老一代 · HBM2 高带宽' },
+    { name: 'RTX A5000', cat: 'pro', vram: 24, bw: 768, fp16: 55.6, tier: 24 },
+    { name: 'RTX A6000', cat: 'pro', vram: 48, bw: 768, fp16: 77.4, tier: 48 },
+    { name: 'RTX 6000 Ada', cat: 'pro', vram: 48, bw: 960, fp16: 182.2, tier: 48 },
+    { name: 'T4 (云)', cat: 'cloud', vram: 16, bw: 320, fp16: 16.2, tier: 16, note: '云上入门推理卡，带宽低' },
+    { name: 'A10 (云)', cat: 'cloud', vram: 24, bw: 600, fp16: 62.4, tier: 24, note: '对标 RTX 3080Ti~3090 级带宽' },
+    { name: 'A16 (云)', cat: 'cloud', vram: 64, bw: 256, fp16: 36, tier: 64, note: '4×A2 组合 · 吞吐型，单卡算力弱' },
+    { name: 'L40S (云)', cat: 'cloud', vram: 48, bw: 864, fp16: 183.2, tier: 48, note: '新一代推理卡' },
+    { name: 'A100 40GB (云)', cat: 'cloud', vram: 40, bw: 1555, fp16: 39, tier: 48, note: 'HBM2e 高带宽' },
+    { name: 'A100 80GB (云)', cat: 'cloud', vram: 80, bw: 2039, fp16: 39, tier: 80, note: 'HBM2e 高带宽' },
+    { name: 'H100 80GB (云)', cat: 'cloud', vram: 80, bw: 3350, fp16: 134, tier: 80, note: 'HBM3 超高带宽' },
+  ];
+  var CAT_LABEL = { consumer: '消费级', pro: '专业级', cloud: '云实例' };
+
+  /* ── 模型目录（GET /api/models · seed 8 模型）
+     results：不同目标硬件下的分级结果（Q4_K_M / fp8 档，估算值）
+     r4060 / r4090 为两张演示卡的预测；custom 由 JS 按显存比较给出。 ── */
+  var MODELS = [
+    { slug: 'llama-3.1-8b', srcId: 'meta-llama/Llama-3.1-8B-Instruct', org: 'Meta', name: 'Llama-3.1-8B-Instruct', type: 'llm', params: 8.03, ctx: 131072, dl: 3200000, src: 'hf', badgeQuant: 'fp16',
+      r4060: { tier: 'no', quant: 'fp16', vram: 17.6, speed: null, noteKey: 'tierRule.noVram' },
+      r4090: { tier: 'smooth', quant: 'fp16', vram: 17.6, speed: '51 tok/s', noteKey: null } },
+    { slug: 'qwen2.5-7b', srcId: 'Qwen/Qwen2.5-7B-Instruct', org: 'Qwen', name: 'Qwen2.5-7B-Instruct', type: 'llm', params: 7.62, ctx: 32768, dl: 1800000, src: 'hf', badgeQuant: 'Q4_K_M',
+      r4060: { tier: 'smooth', quant: 'Q4_K_M', vram: 5.0, speed: '57 tok/s', noteKey: null },
+      r4090: { tier: 'smooth', quant: 'Q4_K_M', vram: 5.0, speed: '211 tok/s', noteKey: null } },
+    { slug: 'sdxl', srcId: 'stabilityai/stable-diffusion-xl-base-1.0', org: 'Stability AI', name: 'Stable Diffusion XL', type: 'image', params: 3.5, ctx: null, dl: 1050000, src: 'hf', badgeQuant: 'fp8',
+      r4060: { tier: 'ok', quant: 'fp8', vram: 5.9, speed: '25 s/张', noteKey: null },
+      r4090: { tier: 'smooth', quant: 'fp8', vram: 5.9, speed: '5 s/张', noteKey: null } },
+    { slug: 'glm-4-9b', srcId: 'zai-org/GLM-4-9B-Chat', org: 'GLM', name: 'GLM-4-9B-Chat', type: 'llm', params: 9.3, ctx: 131072, dl: 950000, src: 'hf', badgeQuant: 'Q4_K_M',
+      r4060: { tier: 'smooth', quant: 'Q4_K_M', vram: 5.7, speed: '47 tok/s', noteKey: null },
+      r4090: { tier: 'smooth', quant: 'Q4_K_M', vram: 5.7, speed: '172 tok/s', noteKey: null } },
+    { slug: 'flux-schnell', srcId: 'black-forest-labs/FLUX.1-schnell', org: 'Black Forest Labs', name: 'FLUX.1-schnell', type: 'image', params: 12, ctx: null, dl: 780000, src: 'hf', badgeQuant: 'fp8',
+      r4060: { tier: 'no', quant: 'fp8', vram: 15.3, speed: null, noteKey: 'tierRule.noVram' },
+      r4090: { tier: 'smooth', quant: 'fp8', vram: 15.3, speed: '2 s/张', noteKey: null } },
+    { slug: 'deepseek-v3', srcId: 'deepseek-ai/DeepSeek-V3', org: 'DeepSeek', name: 'DeepSeek-V3', type: 'llm', params: 671, ctx: 131072, dl: 620000, src: 'ms', badgeQuant: 'fp16',
+      r4060: { tier: 'no', quant: 'fp16', vram: 1343, speed: null, noteKey: 'tierRule.noVram' },
+      r4090: { tier: 'no', quant: 'fp16', vram: 1343, speed: null, noteKey: 'tierRule.noVram' } },
+    { slug: 'qwen2.5-vl-7b', srcId: 'Qwen/Qwen2.5-VL-7B-Instruct', org: 'Qwen', name: 'Qwen2.5-VL-7B-Instruct', type: 'vlm', params: 8.3, ctx: 32768, dl: 420000, src: 'hf', badgeQuant: 'Q4_K_M',
+      r4060: { tier: 'tight', quant: 'Q4_K_M', vram: 7.0, speed: '52 tok/s', noteKey: 'tierRule.lowMargin' },
+      r4090: { tier: 'smooth', quant: 'Q4_K_M', vram: 7.0, speed: '194 tok/s', noteKey: null } },
+    { slug: 'internvl3-8b', srcId: 'OpenGVLab/InternVL3-8B', org: 'BAAI', name: 'InternVL3-8B', type: 'vlm', params: 8.1, ctx: 32768, dl: 110000, src: 'hf', badgeQuant: 'fp16',
+      r4060: { tier: 'no', quant: 'fp16', vram: 18.1, speed: null, noteKey: 'tierRule.noVram' },
+      r4090: { tier: 'smooth', quant: 'fp16', vram: 18.1, speed: '49 tok/s', noteKey: null } },
+  ];
+
+  /* Q4_K_M / fp8 档的 VRAM 需求（custom 显存模式判断用） */
+  var CUSTOM_VRAM = { 'llama-3.1-8b': 17.6, 'qwen2.5-7b': 5.0, 'sdxl': 5.9, 'glm-4-9b': 5.7, 'flux-schnell': 15.3, 'deepseek-v3': 1343, 'qwen2.5-vl-7b': 7.0, 'internvl3-8b': 18.1 };
+
+  /* ── 4 档定义（GET /api/tiers） ── */
+  var TIERS = [
+    { key: 'smooth', name: '流畅', color: '#16a34a', llm: '> 20 tok/s', img: '< 10 s/张', desc: '速度优秀，可流畅对话、出图快' },
+    { key: 'ok', name: '可以', color: '#2563eb', llm: '5 ~ 20 tok/s', img: '10 ~ 30 s/张', desc: '能跑，交互略有延迟，可用' },
+    { key: 'tight', name: '勉强', color: '#ca8a04', llm: '2 ~ 5 tok/s', img: '30 ~ 60 s/张', desc: '可跑但慢，或显存余量不足' },
+    { key: 'no', name: '放不下', color: '#dc2626', llm: '< 2 tok/s', img: '> 60 s/张', desc: '显存放不下，或慢到不可用' },
+  ];
+  var TIER_NAME = { smooth: '流畅', ok: '可以', tight: '勉强', no: '放不下' };
+  var NOTE_TEXT = {
+    tierRule_noVram: '显存放不下：VRAM 需求超过可用显存',
+    tierRule_noSpeed: '放得下但速度太慢',
+    tierRule_lowMargin: '显存余量 < 1 GB，强制降档',
+    tierRule_customVram: '自定义显存模式，速度无法预估',
+  };
+  /* 分级列下方短标签（完整文案见 badge title） */
+  var SHORT_NOTE = {
+    tierRule_noVram: '显存不足',
+    tierRule_noSpeed: '速度过慢',
+    tierRule_lowMargin: '余量 < 1 GB',
+    tierRule_customVram: '仅容量判断',
+  };
+  var TYPE_LABEL = { llm: 'LLM', vlm: 'VLM', image: '图像生成' };
+  var SRC_LABEL = { hf: 'Hugging Face', ms: 'ModelScope' };
+
+  /* ── 详情页数据（GET /api/models/:id · Qwen2.5-7B 与 GLM-4-9B） ── */
+  var DETAILS = {
+    'qwen2.5-7b': {
+      srcId: 'Qwen/Qwen2.5-7B-Instruct', org: 'Qwen', name: 'Qwen2.5-7B-Instruct',
+      params: 7.62, ctx: 32768, lic: 'Apache-2.0', arch: 'qwen2', kv: 'GQA', src: 'hf',
+      dl: 1800000, likes: 12000, url: 'https://huggingface.co/Qwen/Qwen2.5-7B-Instruct',
+      kvBytesPerK: 0.47, /* KV cache @8K */
+      quants: [
+        { q: 'fp16', fmt: 'safetensors', weight: 15.2, kv: 0.5, overhead: 0.75, base: 16.5, tier4060: 'no', tier4090: 'smooth', speed4060: null, speed4090: '51 tok/s' },
+        { q: 'Q8_0', fmt: 'gguf', weight: 7.6, kv: 0.5, overhead: 0.75, base: 8.6, tier4060: 'no', tier4090: 'smooth', speed4060: null, speed4090: '101 tok/s' },
+        { q: 'Q6_K', fmt: 'gguf', weight: 5.7, kv: 0.5, overhead: 0.75, base: 6.7, tier4060: 'tight', tier4090: 'smooth', speed4060: '38 tok/s', speed4090: '134 tok/s' },
+        { q: 'Q5_K_M', fmt: 'gguf', weight: 4.8, kv: 0.5, overhead: 0.75, base: 5.8, tier4060: 'smooth', tier4090: 'smooth', speed4060: '46 tok/s', speed4090: '161 tok/s' },
+        { q: 'Q4_K_M', fmt: 'gguf', weight: 3.8, kv: 0.5, overhead: 0.75, base: 5.0, tier4060: 'smooth', tier4090: 'smooth', speed4060: '57 tok/s', speed4090: '211 tok/s' },
+      ],
+      advice: 'fp16 原版放不下：至少需要 17.2 GB 显存。建议更换为 RTX 3090（24 GB）或 RTX 4090。',
+    },
+    'glm-4-9b': {
+      srcId: 'zai-org/GLM-4-9B-Chat', org: 'GLM', name: 'GLM-4-9B-Chat',
+      params: 9.3, ctx: 131072, lic: 'GLM-4 License', arch: 'glm4', kv: 'GQA', src: 'hf',
+      dl: 950000, likes: 8000, url: 'https://huggingface.co/zai-org/GLM-4-9B-Chat',
+      kvBytesPerK: 0.33,
+      quants: [
+        { q: 'fp16', fmt: 'safetensors', weight: 18.6, kv: 0.3, overhead: 0.75, base: 19.7, tier4060: 'no', tier4090: 'smooth', speed4060: null, speed4090: '43 tok/s' },
+        { q: 'Q8_0', fmt: 'gguf', available: false },
+        { q: 'Q6_K', fmt: 'gguf', available: false },
+        { q: 'Q5_K_M', fmt: 'gguf', available: false },
+        { q: 'Q4_K_M', fmt: 'gguf', weight: 4.7, kv: 0.3, overhead: 0.75, base: 5.7, tier4060: 'smooth', tier4090: 'smooth', speed4060: '47 tok/s', speed4090: '172 tok/s' },
+      ],
+      advice: '官方未发布 Q8/Q6/Q5 档位，仅 fp16 原版与 Q4_K_M 可用（社区量化一律不收）。',
+    },
+    'deepseek-v3': {
+      srcId: 'deepseek-ai/DeepSeek-V3', org: 'DeepSeek', name: 'DeepSeek-V3',
+      params: 671, ctx: 131072, lic: 'DeepSeek License', arch: 'deepseek-v3-mla', kv: 'MLA', src: 'ms',
+      dl: 620000, likes: 3000, url: 'https://modelscope.cn/models/deepseek-ai/DeepSeek-V3',
+      kvBytesPerK: 0.2,
+      quants: [
+        { q: 'fp16', fmt: 'safetensors', weight: 1342, kv: 0.2, overhead: 0.75, base: 1343, tier4060: 'no', tier4090: 'no', speed4060: null, speed4090: null },
+        { q: 'Q8_0', fmt: 'gguf', available: false },
+        { q: 'Q6_K', fmt: 'gguf', available: false },
+        { q: 'Q5_K_M', fmt: 'gguf', available: false },
+        { q: 'Q4_K_M', fmt: 'gguf', available: false },
+      ],
+      advice: '671B MoE 全量权重约 1.3 TB：库中最大卡（H100 80GB）仍不足，推荐多卡并行或更大显存方案。',
+    },
+  };
+
+  /* ── 状态 ── */
+  var state = {
+    type: 'llm',
+    gpuName: 'RTX 4060',
+    custom: false,
+    customVram: null,
+    query: '',
+    sort: 'downloads',
+    loading: false,
+    error: false,
+    detailModel: null,
+    detailCtxK: 8,   /* 上下文长度（K tokens，整数） */
+  };
+
+  var $ = function (s) { return document.querySelector(s); };
+  var esc = function (s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; };
+
+  function compact(n) {
+    if (n >= 1e9) return (n / 1e9).toFixed(1).replace(/\.0$/, '') + 'B';
+    if (n >= 1e6) return (n / 1e6).toFixed(1).replace(/\.0$/, '') + 'M';
+    if (n >= 1e3) return (n / 1e3).toFixed(1).replace(/\.0$/, '') + 'K';
+    return String(Math.round(n));
+  }
+  function paramsFmt(p) { return (p >= 100 ? Math.round(p) : (Math.round(p * 10) / 10)) + 'B'; }
+  function gbFmt(g) { return (g >= 100 ? Math.round(g) : (Math.round(g * 10) / 10)) + ''; }
+
+  /* ── 路由 ── */
+  function currentRoute() {
+    var h = location.hash.slice(1) || '/';
+    if (h.indexOf('/model/') === 0) return { page: 'detail', id: h.slice(7) };
+    if (h === '/hardware') return { page: 'hardware' };
+    if (h === '/tiers') return { page: 'tiers' };
+    return { page: 'home' };
+  }
+  function renderRoute() {
+    var r = currentRoute();
+    ['home', 'detail', 'hardware', 'tiers'].forEach(function (p) {
+      var el = $('#page-' + (p === 'home' ? 'models' : p));
+      if (el) el.classList.toggle('active', r.page === p);
+    });
+    document.querySelectorAll('.nav a').forEach(function (a) {
+      a.classList.toggle('active', a.getAttribute('data-route') === (r.page === 'home' ? 'home' : r.page));
+    });
+    if (r.page === 'home') { renderModels(); renderLegend(); }
+    if (r.page === 'detail') { renderDetail(r.id); }
+    if (r.page === 'hardware') { renderHardware(); }
+    if (r.page === 'tiers') { renderTiers(); }
+    window.scrollTo(0, 0);
+  }
+
+  /* ── 硬件选择器 ── */
+  function renderPicker() {
+    var sel = $('#gpu-select');
+    sel.innerHTML = GPUS.map(function (g) {
+      return '<option value="' + esc(g.name) + '">' + esc(g.name) + '（' + g.vram + ' GB）</option>';
+    }).join('');
+    sel.value = state.gpuName;
+    sel.disabled = state.custom;
+    $('#custom-vram').disabled = !state.custom;
+    $('#custom-toggle').checked = state.custom;
+    updatePickerSummary();
+  }
+  function updatePickerSummary() {
+    var el = $('#picker-summary');
+    if (state.custom) {
+      var v = state.customVram;
+      el.innerHTML = v == null
+        ? '<span>输入显存后实时判断（仅容量）</span>'
+        : '<span class="stat">显存 <span class="num">' + v + '</span> GB</span><span class="stat">可用 <span class="num">' + (v - 0.5) + '</span> GB<span class="sub">预留 0.5</span></span>';
+    } else {
+      var g = GPUS.filter(function (x) { return x.name === state.gpuName; })[0];
+      el.innerHTML = '<span class="stat">带宽 <span class="num">' + g.bw + '</span> GB/s</span><span class="stat">FP16 <span class="num">' + g.fp16 + '</span> TFLOPS</span>';
+    }
+  }
+
+  /* ── 模型列表 ── */
+  function resultFor(m) {
+    if (state.custom) {
+      var need = CUSTOM_VRAM[m.slug];
+      if (state.customVram == null) return null;
+      if (need == null) return { tier: 'no', quant: m.badgeQuant, vram: null, speed: null, noteKey: 'tierRule_noVram' };
+      var ok = need <= state.customVram - 0.5;
+      return { tier: ok ? 'ok' : 'no', quant: m.badgeQuant, vram: need, speed: null, noteKey: ok ? 'tierRule_customVram' : 'tierRule_noVram' };
+    }
+    return state.gpuName === 'RTX 4090' ? m.r4090 : m.r4060;
+  }
+  function visibleModels() {
+    var q = state.query.trim().toLowerCase();
+    return MODELS.filter(function (m) {
+      if (m.type !== state.type) return false;
+      if (!q) return true;
+      return m.name.toLowerCase().indexOf(q) >= 0 || m.org.toLowerCase().indexOf(q) >= 0;
+    });
+  }
+  function sortModels(list) {
+    var s = state.sort;
+    var arr = list.slice();
+    if (s === 'downloads') arr.sort(function (a, b) { return b.dl - a.dl; });
+    else if (s === 'params') arr.sort(function (a, b) { return b.params - a.params; });
+    else arr.sort(function (a, b) { return a.name.localeCompare(b.name); });
+    return arr;
+  }
+  function rowHTML(m) {
+    var r = resultFor(m);
+    /* noteKey 数据用点号（tierRule.noVram），NOTE_TEXT 键用下划线（tierRule_noVram），统一映射 */
+    var noteText = function (k) { return NOTE_TEXT[(k || '').replace(/\./g, '_')] || ''; };
+    var noteShort = function (k) { return SHORT_NOTE[(k || '').replace(/\./g, '_')] || ''; };
+    var quantCell = m.badgeQuant
+      ? '<span class="quant-tag">' + esc(m.badgeQuant) + '</span>'
+      : '<span class="no-quant">无官方量化</span>';
+    var badge, vramCell, speedCell, note;
+    if (!r) {
+      badge = '<span class="badge none">待选择硬件</span>';
+      vramCell = '<span class="td-muted">—</span>';
+      speedCell = '<span class="td-muted">—</span>';
+    } else {
+      badge = '<span class="badge ' + r.tier + '" title="' + esc(noteText(r.noteKey) || TIERS.filter(function (t) { return t.key === r.tier; })[0].desc) + '">' + TIER_NAME[r.tier] + '</span>';
+      vramCell = r.vram == null ? '<span class="td-muted">—</span>' : '<span class="num">' + gbFmt(r.vram) + '</span> <span style="color:var(--faint);font-size:12px">GB</span>';
+      speedCell = r.speed ? '<span class="num">' + esc(r.speed) + '</span>' : '<span class="td-muted">—</span>';
+      if (r.noteKey && noteText(r.noteKey)) {
+        note = '<span class="cell-note"><svg class="icon" viewBox="0 0 24 24" style="width:11px;height:11px"><path d="M12 3.5L22 20H2L12 3.5z"/><path d="M12 10v5"/><path d="M12 17.6v.1"/></svg>' + esc(noteShort(r.noteKey)) + '</span>';
+      }
+    }
+    var dl = '<span class="num">' + compact(m.dl) + '</span>';
+    return '<tr data-slug="' + m.slug + '">' +
+      '<td class="cell-model">' +
+        '<div><a class="name" href="#/model/' + m.slug + '"><span class="monogram" aria-hidden="true">' + esc(m.org.slice(0, 2)) + '</span>' + esc(m.name) + '</a></div>' +
+        '<div class="meta"><span class="org">' + esc(m.org) + '</span><span class="pill src-' + m.src + '">' + (m.src === 'hf' ? 'HF' : 'MS') + '</span></div>' +
+      '</td>' +
+      '<td><span class="num">' + paramsFmt(m.params) + '</span></td>' +
+      '<td>' + quantCell + '</td>' +
+      '<td>' + badge + (note || '') + '</td>' +
+      '<td>' + vramCell + '</td>' +
+      '<td>' + speedCell + '</td>' +
+      '<td>' + dl + '</td>' +
+      '</tr>';
+  }
+  function renderModels() {
+    var list = sortModels(visibleModels());
+    $('#model-count').textContent = list.length + ' 个模型 · 默认按下载量排序';
+    $('#model-rows').innerHTML = list.map(rowHTML).join('');
+    var empty = list.length === 0;
+    $('#model-empty').hidden = !empty;
+    $('#model-loading').hidden = true;
+    $('#model-error').hidden = !state.error;
+    $('#model-rows').parentElement.hidden = state.error;
+    if (empty) {
+      var g = GPUS.filter(function (x) { return x.name === state.gpuName; })[0];
+      $('#empty-desc').textContent = state.query
+        ? '没有找到与「' + state.query + '」匹配的' + TYPE_LABEL[state.type] + '模型。换个关键词，或试试其他类型。'
+        : (state.custom ? '当前自定义显存下没有放得下的' + TYPE_LABEL[state.type] + '模型。' : TYPE_LABEL[state.type] + '目录为空。可以换一张更大的卡试试（当前 ' + g.name + ' ' + g.vram + ' GB）。');
+    }
+  }
+  function showLoading(ms) {
+    state.loading = true;
+    $('#model-loading').hidden = false;
+    $('#model-rows').parentElement.hidden = true;
+    $('#model-empty').hidden = true;
+    $('#model-error').hidden = true;
+    setTimeout(function () { state.loading = false; renderModels(); }, ms);
+  }
+
+  function renderLegend() {
+    $('#legend-grid').innerHTML = TIERS.map(function (t) {
+      return '<div class="legend-item"><span class="sw" style="background:' + t.color + '" aria-hidden="true"></span>' +
+        '<div><b>' + t.name + '</b><span>LLM ' + t.llm + ' · 图像 ' + t.img + '</span></div></div>';
+    }).join('');
+  }
+
+  /* ── 详情页 ── */
+  function renderDetail(id) {
+    var d = DETAILS[id];
+    var nf = $('#detail-notfound');
+    var body = $('#detail-body');
+    if (!d) { nf.hidden = false; body.hidden = true; return; }
+    nf.hidden = true; body.hidden = false;
+    state.detailModel = id;
+    var ctxK = Math.min(state.detailCtxK || 8, Math.max(1, Math.floor((d.ctx || 32768) / 1000)));
+    state.detailCtxK = ctxK;
+
+    var gpu = GPUS.filter(function (x) { return x.name === state.gpuName; })[0];
+    var is4090 = state.gpuName === 'RTX 4090';
+    body.innerHTML =
+      '<a class="back-link" href="#/">' +
+        '<svg class="icon" viewBox="0 0 24 24"><path d="M19 12H5"/><path d="M12 5l-7 7 7 7"/></svg>' +
+        '返回列表</a>' +
+      '<div class="detail-head">' +
+        '<div class="title-block">' +
+          '<div class="kicker"><span class="pill src-' + d.src + '">' + (d.src === 'hf' ? 'Hugging Face' : 'ModelScope') + '</span><span class="pill">' + esc(d.org) + '</span><span class="pill">LLM</span></div>' +
+          '<h1>' + esc(d.name) + '</h1>' +
+          '<div class="facts">' +
+            '<span>参数量 <span class="num">' + paramsFmt(d.params) + '</span></span>' +
+            '<span>上下文 <span class="num">' + (d.ctx ? compact(d.ctx) : '—') + '</span></span>' +
+            '<span>许可 <span class="num">' + esc(d.lic) + '</span></span>' +
+            '<span>下载量 <span class="num">' + compact(d.dl) + '</span></span>' +
+          '</div>' +
+        '</div>' +
+        '<div class="head-actions">' +
+          '<a class="btn btn-dark" href="' + esc(d.url) + '" target="_blank" rel="noopener">' +
+            '<svg class="icon" viewBox="0 0 24 24"><path d="M14 4h6v6"/><path d="M20 4l-9 9"/><path d="M19 14v5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"/></svg>' +
+            '官方仓库</a>' +
+          '<a class="btn btn-ghost" href="#/">查看其他模型</a>' +
+        '</div>' +
+      '</div>' +
+      '<div class="detail-grid">' +
+        '<div>' +
+          '<div class="card">' +
+            '<h2>模型信息</h2>' +
+            '<dl class="def-list">' +
+              '<dt>参数量</dt><dd><span class="num">' + paramsFmt(d.params) + '</span>' + (d.params >= 100 ? '（MoE · 推理激活约 37B）' : '') + '</dd>' +
+              '<dt>上下文长度</dt><dd><span class="num">' + (d.ctx ? compact(d.ctx) + ' tokens' : '—（图像模型不适用）') + '</span></dd>' +
+              '<dt>架构</dt><dd><span class="num" style="font-size:14px">' + esc(d.arch) + '</span></dd>' +
+              '<dt>KV 类型</dt><dd>' + esc(d.kv) + (d.kv === 'MLA' ? '（压缩 KV，显存开销约为 MHA 的 1/8）' : '') + '</dd>' +
+              '<dt>许可协议</dt><dd>' + esc(d.lic) + '</dd>' +
+              '<dt>来源平台</dt><dd>' + SRC_LABEL[d.src] + '<span class="src-id">' + esc(d.srcId) + '</span></dd>' +
+              '<dt>下载量 / 点赞</dt><dd><span class="num">' + compact(d.dl) + '</span> / <span class="num">' + compact(d.likes || 0) + '</span></dd>' +
+            '</dl>' +
+          '</div>' +
+          '<div class="card" style="margin-top:16px">' +
+            '<h2>量化档位分级</h2>' +
+            '<div class="table-scroll"><table class="quant-table">' +
+              '<thead><tr><th>档位</th><th>权重</th><th>KV</th><th>VRAM 需求</th><th>速度</th><th>分级</th><th></th></tr></thead>' +
+              '<tbody>' + d.quants.map(function (q) {
+                if (q.available === false) {
+                  return '<tr class="unavailable"><td><span class="quant-name">' + esc(q.q) + '</span><span class="fmt">' + esc(q.fmt) + '</span></td><td colspan="5" style="color:var(--faint)">官方未发布该档位（社区量化一律不收）</td><td></td></tr>';
+                }
+                var tier = is4090 ? q.tier4090 : q.tier4060;
+                var speed = is4090 ? q.speed4090 : q.speed4060;
+                return '<tr><td><span class="quant-name">' + esc(q.q) + '</span><span class="fmt">' + esc(q.fmt) + '</span></td>' +
+                  '<td><span class="num">' + q.weight + '</span> GB</td>' +
+                  '<td><span class="num" data-kv>' + q.kv + '</span> GB</td>' +
+                  '<td><span class="num" data-vram>' + q.base + '</span> GB</td>' +
+                  '<td>' + (speed ? '<span class="num">' + esc(speed) + '</span>' : '<span class="td-muted">—</span>') + '</td>' +
+                  '<td><span class="badge ' + tier + '" data-tier>' + TIER_NAME[tier] + '</span></td>' +
+                  '<td><a class="icon-link" href="' + esc(d.url) + '" target="_blank" rel="noopener" aria-label="官方链接">' +
+                    '<svg class="icon" viewBox="0 0 24 24" style="color:var(--faint)"><path d="M14 4h6v6"/><path d="M20 4l-9 9"/><path d="M19 14v5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"/></svg></a></td></tr>';
+              }).join('') + '</tbody></table></div>' +
+          '</div>' +
+        '</div>' +
+        '<aside>' +
+          '<div class="card" style="position:sticky;top:84px">' +
+            '<h2>硬件与上下文</h2>' +
+            '<div class="field" style="display:flex;flex-direction:column;gap:7px">' +
+              '<label for="gpu-select-detail" style="font-size:12.5px;font-weight:500;color:var(--faint);letter-spacing:0.04em">目标硬件</label>' +
+              '<div class="select-wrap" style="position:relative;display:inline-flex">' +
+                '<select id="gpu-select-detail" style="appearance:none;-webkit-appearance:none;height:40px;padding:0 36px 0 12px;border-radius:10px;border:1px solid var(--border-2);background:var(--surface-2);font-size:14px;min-width:100%;cursor:pointer">' +
+                  GPUS.map(function (g) { return '<option value="' + esc(g.name) + '">' + esc(g.name) + '（' + g.vram + ' GB）</option>'; }).join('') +
+                '</select>' +
+                '<span style="position:absolute;right:13px;top:50%;width:8px;height:8px;border-right:1.7px solid var(--muted);border-bottom:1.7px solid var(--muted);transform:translateY(-70%) rotate(45deg);pointer-events:none" aria-hidden="true"></span>' +
+              '</div>' +
+            '</div>' +
+            '<div style="margin-top:20px">' +
+              '<div style="display:flex;justify-content:space-between;align-items:baseline;font-size:13px;color:var(--muted)">' +
+                '<span>上下文长度</span>' +
+                '<span class="ctx-readout"><span class="val" id="ctx-val">' + ctxK + '</span><span class="unit">K tokens</span></span>' +
+              '</div>' +
+              '<input class="ctx-slider" id="ctx-slider" type="range" min="1" max="' + Math.max(1, Math.floor((d.ctx || 32768) / 1000)) + '" step="1" value="' + ctxK + '" aria-label="上下文长度（K tokens）" />' +
+              '<div class="ctx-labels"><span>1K</span><span>原生 ' + (d.ctx ? compact(d.ctx) : '—') + '</span></div>' +
+              '<div class="kv-est" id="kv-est"></div>' +
+            '</div>' +
+            '<div class="advice ' + (is4090 ? 'ok' : 'bad') + '" id="advice-box" style="margin-top:20px">' +
+              '<div class="advice-title">' +
+                '<svg class="icon" viewBox="0 0 24 24"><path d="M12 3.5L22 20H2L12 3.5z"/><path d="M12 10v5"/><path d="M12 17.6v.1"/></svg>' +
+                (is4090 ? '当前硬件放得下' : '放不下 · 换卡建议') +
+              '</div>' +
+              '<p>' + esc(d.advice) + '</p>' +
+            '</div>' +
+            '<p style="font-size:11.5px;color:var(--faint);margin:14px 0 0;line-height:1.6">演示：分级按 RTX 4060 / RTX 4090 两档预测，其余 GPU 以 4060 近似；真实实现由后端计算。</p>' +
+          '</div>' +
+        '</aside>' +
+      '</div>';
+
+    $('#gpu-select-detail').value = state.gpuName;
+    $('#gpu-select-detail').addEventListener('change', function (e) {
+      state.gpuName = e.target.value;
+      $('#gpu-select').value = state.gpuName;
+      updatePickerSummary();
+      renderDetail(id);
+    });
+    $('#ctx-slider').addEventListener('input', function (e) {
+      var k = parseInt(e.target.value, 10);
+      state.detailCtxK = k;
+      $('#ctx-val').textContent = k;
+      applyCtxRecalc(d, k);
+    });
+    applyCtxRecalc(d, ctxK);
+  }
+  /* 滑块重算：KV 随上下文线性变化，更新每档 VRAM 与分级。
+     tier 完全由余量规则决定（VRAM > 可用 → no；余量 < 1GB → tight；否则按速度 smooth），
+     与后端引擎（docs/API.md §2.2）语义一致。 */
+  function applyCtxRecalc(d, k) {
+    var is4090 = state.gpuName === 'RTX 4090';
+    var avail = (is4090 ? 24 : 8) - 0.5;
+    var kvMult = k / 8;
+    var kvNow = Math.round(d.kvBytesPerK * kvMult * 10) / 10;
+    document.querySelectorAll('#detail-body .quant-table tbody tr:not(.unavailable)').forEach(function (tr) {
+      var name = tr.querySelector('.quant-name').childNodes[0].textContent.trim();
+      var q = d.quants.filter(function (x) { return x.q === name; })[0];
+      if (!q) return;
+      var vram = Math.round((q.weight + kvNow + q.overhead) * 10) / 10;
+      tr.querySelector('[data-vram]').textContent = vram;
+      tr.querySelector('[data-kv]').textContent = kvNow;
+      var tier = vram > avail ? 'no' : (vram > avail - 1 ? 'tight' : 'smooth');
+      var badge = tr.querySelector('[data-tier]');
+      badge.className = 'badge ' + tier;
+      badge.textContent = TIER_NAME[tier];
+    });
+    var maxK = Math.max(1, Math.floor((d.ctx || 32768) / 1000));
+    $('#ctx-slider').style.setProperty('--fill', Math.round(k / maxK * 100) + '%');
+    $('#kv-est').innerHTML = 'KV cache @' + k + 'K ≈ <span class="num">' + kvNow + '</span> GB';
+  }
+
+  /* ── 硬件页 ── */
+  function renderHardware() {
+    var groups = ['consumer', 'pro', 'cloud'];
+    $('#hw-groups').innerHTML = groups.map(function (cat) {
+      var list = GPUS.filter(function (g) { return g.cat === cat; });
+      return '<div class="cat-section">' +
+        '<h2>' + CAT_LABEL[cat] + '<span class="n">' + list.length + ' 款</span></h2>' +
+        '<div class="card" style="padding:6px 0 10px"><div class="table-scroll"><table class="hw-table">' +
+          '<thead><tr><th>型号</th><th>显存</th><th>带宽 (GB/s)</th><th>FP16 算力 (TFLOPS)</th><th>备注</th></tr></thead><tbody>' +
+          list.map(function (g) {
+            return '<tr>' +
+              '<td class="hw-name">' + esc(g.name) + '</td>' +
+              '<td><span class="num">' + g.vram + '</span> GB</td>' +
+              '<td><span class="num">' + g.bw + '</span></td>' +
+              '<td><span class="num">' + g.fp16 + '</span></td>' +
+              '<td class="hw-note">' + (g.note ? esc(g.note) : '<span style="color:var(--faint);opacity:0.55">—</span>') + '</td>' +
+              '</tr>';
+          }).join('') + '</tbody></table></div></div></div>';
+    }).join('');
+  }
+
+  /* ── 分档说明页 ── */
+  function renderTiers() {
+    $('#tier-cards').innerHTML = TIERS.map(function (t) {
+      return '<div class="tier-card">' +
+        '<div class="head"><span class="sw" style="background:' + t.color + '" aria-hidden="true"></span><span class="name">' + t.name + '</span></div>' +
+        '<p class="rule"><b>' + t.llm + '</b>（LLM / VLM）<br /><b>' + t.img + '</b>（图像生成）</p>' +
+        '</div>';
+    }).join('');
+    $('#threshold-body').innerHTML = TIERS.map(function (t) {
+      return '<tr><td><span class="sw" style="background:' + t.color + '" aria-hidden="true"></span>' + t.name + '</td>' +
+        '<td><span class="num">' + esc(t.llm) + '</span></td>' +
+        '<td><span class="num">' + esc(t.img) + '</span></td>' +
+        '<td style="color:var(--muted);font-size:13.5px">' + t.desc + '</td></tr>';
+    }).join('');
+    var orgs = [
+      { title: '国产', names: ['Qwen', 'DeepSeek', 'GLM', 'MiniMax', 'Moonshot', '01.AI', 'BAAI', 'InternLM', 'StepFun', 'Tencent'] },
+      { title: '国际', names: ['Meta', 'Google', 'Mistral', 'Microsoft', 'xAI', 'Cohere', 'NVIDIA', 'Amazon'] },
+      { title: '图像生成', names: ['Stability AI', 'Black Forest Labs'] },
+    ];
+    $('#org-groups').innerHTML = orgs.map(function (g) {
+      return '<div class="org-group"><div class="g-title">' + g.title + '</div>' +
+        '<div class="org-chips">' + g.names.map(function (n) {
+          return '<span class="org-chip">' + esc(n) + '<span class="mono">HF + MS</span></span>';
+        }).join('') + '</div></div>';
+    }).join('');
+  }
+
+  /* ── 事件绑定 ── */
+  window.addEventListener('hashchange', renderRoute);
+
+  /* 类型 tab：点击 + ARIA APG 键盘方向键导航 */
+  function clickTab(type) {
+    document.querySelectorAll('.tabs button').forEach(function (b) {
+      b.classList.toggle('active', b.getAttribute('data-type') === type);
+      b.setAttribute('aria-selected', b.getAttribute('data-type') === type ? 'true' : 'false');
+    });
+    state.type = type;
+    showLoading(280); /* 演示：切 tab 短暂骨架（真实实现为请求往返） */
+  }
+  document.querySelectorAll('.tabs button').forEach(function (btn) {
+    btn.addEventListener('click', function () { clickTab(btn.getAttribute('data-type')); });
+  });
+  document.querySelectorAll('.tabs').forEach(function (tabs) {
+    tabs.addEventListener('keydown', function (e) {
+      var btns = Array.prototype.slice.call(tabs.querySelectorAll('button'));
+      var idx = btns.indexOf(document.activeElement);
+      if (idx < 0) return;
+      var next = null;
+      if (e.key === 'ArrowRight') next = (idx + 1) % btns.length;
+      if (e.key === 'ArrowLeft') next = (idx - 1 + btns.length) % btns.length;
+      if (next !== null) { e.preventDefault(); btns[next].click(); btns[next].focus(); }
+    });
+  });
+
+  /* 硬件选择 */
+  $('#gpu-select').addEventListener('change', function (e) {
+    state.gpuName = e.target.value;
+    state.custom = false;
+    $('#custom-toggle').checked = false;
+    $('#custom-vram').disabled = true;
+    renderPicker();
+    renderModels();
+  });
+  $('#custom-toggle').addEventListener('change', function (e) {
+    state.custom = e.target.checked;
+    state.customVram = null;
+    $('#custom-vram').value = '';
+    $('#custom-vram').disabled = !e.target.checked;
+    renderPicker();
+    renderModels();
+  });
+  $('#custom-vram').addEventListener('input', function (e) {
+    var v = parseFloat(e.target.value);
+    if (e.target.value === '') { state.customVram = null; renderModels(); updatePickerSummary(); return; }
+    if (isNaN(v) || v < 1 || v > 512) {
+      /* form 校验错误态：role=alert */
+      if (!$('#vram-error')) {
+        var err = document.createElement('p');
+        err.id = 'vram-error';
+        err.setAttribute('role', 'alert');
+        err.style.cssText = 'color:var(--danger);font-size:12.5px;margin-top:6px';
+        err.textContent = '请输入 1–512 GB 之间的数值';
+        e.target.parentElement.appendChild(err);
+      }
+      return;
+    }
+    var ex = $('#vram-error');
+    if (ex) ex.remove();
+    state.customVram = v;
+    renderModels();
+    updatePickerSummary();
+  });
+
+  /* 搜索 */
+  $('#search-input').addEventListener('input', function (e) {
+    state.query = e.target.value;
+    $('#search-box').classList.toggle('has-value', e.target.value.length > 0);
+    renderModels();
+  });
+  $('#search-clear').addEventListener('click', function () {
+    state.query = '';
+    $('#search-input').value = '';
+    $('#search-box').classList.remove('has-value');
+    $('#search-input').focus();
+    renderModels();
+  });
+  $('#empty-clear-search').addEventListener('click', function () { $('#search-clear').click(); });
+  $('#empty-reset-gpu').addEventListener('click', function () {
+    var g = GPUS.filter(function (x) { return x.vram >= 24; })[0];
+    state.gpuName = g.name; state.custom = false;
+    $('#custom-toggle').checked = false; $('#custom-vram').disabled = true;
+    renderPicker(); renderModels();
+  });
+
+  /* 排序 */
+  $('#sort-select').addEventListener('change', function (e) { state.sort = e.target.value; renderModels(); });
+
+  /* 键盘快捷键：/ 聚焦搜索 · 1/2/3 切类型 · Esc 清搜索（面向开发者，Claude 系产品惯例） */
+  document.addEventListener('keydown', function (e) {
+    var tag = e.target.tagName;
+    if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+    if (e.key === '/') { e.preventDefault(); $('#search-input').focus(); }
+    else if (e.key === '1' || e.key === '2' || e.key === '3') clickTab(['llm', 'vlm', 'image'][parseInt(e.key, 10) - 1]);
+    else if (e.key === 'Escape') { if (state.query) $('#search-clear').click(); }
+  });
+
+  /* 错误重试演示 */
+  $('#error-retry').addEventListener('click', function () {
+    state.error = false;
+    showLoading(400);
+  });
+
+  /* 初始化 */
+  MODELS.forEach(function (m) {
+    var el = document.querySelector('[data-cnt="' + m.type + '"]');
+    if (el) el.textContent = MODELS.filter(function (x) { return x.type === m.type; }).length;
+  });
+  renderPicker();
+  renderRoute();
+})();
+</script>
+</body>
+</html>

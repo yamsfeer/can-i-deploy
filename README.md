@@ -23,7 +23,7 @@
 
 ```bash
 pnpm install                     # 安装全部依赖
-pnpm --filter @can-i-deploy/backend seed   # 初始化数据库 + 演示数据（22 GPU / 8 模型）
+pnpm --filter @can-i-deploy/backend seed   # 初始化产品基础数据（白名单组织 + 22 张 GPU 硬件库）
 pnpm --filter @can-i-deploy/backend dev    # 后端 → http://127.0.0.1:3001
 pnpm --filter @can-i-deploy/frontend dev   # 前端 → http://127.0.0.1:5173（/api 已代理到 3001）
 ```
@@ -57,6 +57,6 @@ pnpm --filter @can-i-deploy/frontend dev   # 前端 → http://127.0.0.1:5173（
 pnpm --filter @can-i-deploy/backend typecheck    # 后端类型检查
 pnpm --filter @can-i-deploy/frontend typecheck   # 前端类型检查
 pnpm -r run typecheck                            # 全部
-pnpm --filter @can-i-deploy/backend seed         # 重建演示数据（可重复执行，幂等）
+pnpm --filter @can-i-deploy/backend seed         # 重建产品基础数据（可重复执行，幂等）
 pnpm --filter @can-i-deploy/backend sync:run     # 手动触发全量同步（SYNC_ORG_LIMIT / SYNC_MAX_MODELS_PER_ORG 可收敛请求量）
 ```

@@ -19,6 +19,21 @@ const DEFAULT_VISION_OVERHEAD_BYTES = 1.5e9
 /** 图像生成中间激活兜底值（1024²，GB） */
 const DEFAULT_IMAGE_ACTIVATION_GB = 1.5
 
+/**
+ * 从 HF tags 提取 license（HF 列表 API 无独立 license 字段，tags 带 `license:xxx` 前缀）。
+ * 例：['transformers', 'license:apache-2.0'] → 'apache-2.0'；无则 null。
+ */
+export function extractLicenseFromTags(tags?: string[] | null): string | null {
+  if (!tags) return null
+  for (const tag of tags) {
+    if (tag.startsWith('license:')) {
+      const lic = tag.slice('license:'.length).trim()
+      return lic || null
+    }
+  }
+  return null
+}
+
 /** 类型判定：HF pipeline_tag / ModelScope tasks / tags 关键词 → ModelType */
 export function classifyModelType(input: {
   pipelineTag?: string | null
@@ -108,7 +123,7 @@ export function buildHfCandidate(
     vision_overhead_bytes: modelType === 'vlm' ? (structure.visionOverheadBytes ?? DEFAULT_VISION_OVERHEAD_BYTES) : null,
     activation_gb: modelType === 'image' ? DEFAULT_IMAGE_ACTIVATION_GB : null,
     image_steps: modelType === 'image' ? inferImageSteps(structure.architecture) : null,
-    license: null,
+    license: extractLicenseFromTags(m.tags) ?? m.license ?? null,
     downloads: m.downloads ?? 0,
     likes: m.likes ?? null,
     file_size: null,

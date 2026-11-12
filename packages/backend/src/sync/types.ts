@@ -68,6 +68,8 @@ export interface HfModelSummary {
   pipeline_tag?: string | null
   tags?: string[]
   library_name?: string | null
+  /** 某些响应（如详情接口）可能直接给 license；列表接口走 tags 提取 */
+  license?: string | null
   createdAt?: string | null
   private?: boolean
   gated?: boolean

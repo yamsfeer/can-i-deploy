@@ -140,15 +140,22 @@ describe('buildHfCandidate 候选组装', () => {
     downloads: 5000,
     likes: 50,
     pipeline_tag: 'text-generation',
+    tags: ['transformers', 'qwen3', 'license:apache-2.0'],
   }
 
-  it('参数量取 config 估算，fp16 档', () => {
+  it('参数量取 config 估算，fp16 档，license 从 tags 提取', () => {
     const cand = buildHfCandidate(hf, STRUCTURE, 'Qwen')!
     expect(cand.params).toBe(7.62)
     expect(cand.source).toBe('hf')
     expect(cand.quants[0].quantName).toBe('fp16')
     expect(cand.quants[0].weightBytes).toBe(7.62 * 1e9 * 2)
     expect(cand.url).toBe('https://huggingface.co/Qwen/Qwen3-0.6B')
+    expect(cand.license).toBe('apache-2.0')
+  })
+
+  it('无 license tag → license 为 null（不崩）', () => {
+    const noTag: HfModelSummary = { ...hf, tags: ['transformers'] }
+    expect(buildHfCandidate(noTag, STRUCTURE, 'Qwen')!.license).toBeNull()
   })
 
   it('config 估算失败（params null）→ null', () => {

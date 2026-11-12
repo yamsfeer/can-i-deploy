@@ -2,7 +2,7 @@
   "name": "can-i-deploy",
   "version": "0.1.0",
   "private": true,
-  "packageManager": "pnpm@11.6.0",
+  "packageManager": "pnpm@12.4.2",
   "description": "Can I Deploy — 选硬件看模型，判断能不能跑、跑得多好",
   "engines": {
     "node": ">=24.0.0"
@@ -12,6 +12,10 @@
     "build": "pnpm -r run build",
     "typecheck": "pnpm -r run typecheck",
     "seed": "pnpm --filter @can-i-deploy/backend run seed",
-    "test:e2e": "pnpm --filter @can-i-deploy/frontend run test:e2e"
+    "test:e2e": "pnpm --filter @can-i-deploy/frontend run test:e2e",
+    "test:e2e:ui": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1"
   }
 }

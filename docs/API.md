@@ -11,7 +11,7 @@
 # 安装依赖（仓库根目录）
 pnpm install
 
-# 1. 初始化数据库 + 演示数据（22 张 GPU / 8 个模型）
+# 1. 初始化数据库产品基础数据（白名单组织 + 22 张 GPU 硬件库；模型由 M2 数据管道抓取）
 pnpm --filter @can-i-deploy/backend seed
 
 # 2. 启动后端（端口 3001）
@@ -400,20 +400,18 @@ interface Organization {
 
 ---
 
-## 7. 数据说明（演示 seed）
+## 7. 数据说明（产品库 vs 测试数据）
 
-当前库为演示数据（`pnpm seed` 生成），M2 数据管道接入后自动扩充为真实白名单模型：
+**产品数据库**（`packages/backend/data/can-i-deploy.db`）只允许两类数据：
+1. 手工维护的产品基础数据（`pnpm seed` 初始化：白名单组织 + GPU 硬件库）
+2. M2 数据管道从 Hugging Face / ModelScope 抓取的真实模型（`pnpm sync:run` 或每日定时任务）
 
-| 类型 | 模型 |
-|---|---|
-| LLM | Qwen2.5-7B-Instruct（5 档官方量化）、DeepSeek-V3（671B MoE，MLA）、Llama-3.1-8B（仅 fp16）、GLM-4-9B-Chat |
-| VLM | Qwen2.5-VL-7B-Instruct、InternVL3-8B |
-| 图像 | Stable Diffusion XL、FLUX.1-schnell（4 步蒸馏） |
+**演示模型只存在于测试代码**（`backend/src/db/demo-models.ts`，供 e2e / 单测使用），
+不会写入产品库。真实同步前模型表为空，前端显示空状态。
 
-注意：**`source_id` 即为平台侧完整 ID**（如 `Qwen/Qwen2.5-7B-Instruct`），`url` 为官方仓库链接，前端可直接做跳转。
+注意：`source_id` 即为平台侧完整 ID（如 `Qwen/Qwen2.5-7B-Instruct`），`url` 为官方仓库链接，前端可直接做跳转。
 
 ---
-
 ## 8. 后端开发备注（前端一般不需要关心）
 
 - 预测引擎：纯解析公式（PRD §7），常量集中在 `packages/shared/src/constants.ts`（带宽利用率、框架开销、图像 FLOPs 校准系数等）。
